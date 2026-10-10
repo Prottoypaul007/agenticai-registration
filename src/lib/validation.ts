@@ -15,12 +15,16 @@ export const registrationSchema = z.object({
   api_experience: z.enum(["Yes", "No"]),
   ai_familiarity: z.enum(["None", "Basic", "Intermediate", "Advanced"]),
   agent_experience: z.enum(["Yes", "No"]),
+  paid_llm_subscription: z.enum(["Yes", "No"], { error: "Select an answer" }),
+  paid_llm_models: z.array(z.enum(["GPT / ChatGPT", "Claude", "Gemini", "Grok", "DeepSeek", "Perplexity", "Other"])),
+  paid_llm_other_model: z.string().trim().max(120).optional().default(""),
+  local_model_laptop: z.enum(["Yes", "No", "Not Sure"], { error: "Select an answer" }),
   traditional_development: z.enum(["Yes", "No"]),
   ai_tools_basics: z.enum(["Yes", "No"]),
   built_software_project: z.enum(["Yes", "No"]),
   attendance: z.enum(["Both Days", "Day 1 Only", "Day 2 Only"]),
-  bringing_laptop: z.enum(["Yes", "No"]),
-  development_environment: z.enum(["Yes", "No", "Not Sure"]),
+  bringing_laptop: z.enum(["Yes", "No"], { error: "Select an answer" }),
+  development_environment: z.enum(["Yes", "No", "Not Sure"], { error: "Select an answer" }),
   learning_expectations: z.string().trim().max(2000).optional().default(""),
   payment_method: z.enum(["bkash", "rocket", "nagad"]),
   payment_transaction_id: z.string().trim().min(5, "Enter your payment transaction ID").max(50).regex(/^[A-Za-z0-9-]+$/, "Use letters, numbers, or hyphens only").transform(v => v.toUpperCase()),
@@ -33,6 +37,14 @@ export const registrationSchema = z.object({
 }).superRefine((data, ctx) => {
   if (data.programming_languages.includes("None") && data.programming_languages.length > 1)
     ctx.addIssue({ code: "custom", path: ["programming_languages"], message: "None cannot be combined with another language" });
+  if (data.paid_llm_subscription === "Yes" && data.paid_llm_models.length === 0)
+    ctx.addIssue({ code: "custom", path: ["paid_llm_models"], message: "Select at least one model or service" });
+  if (data.paid_llm_subscription === "No" && (data.paid_llm_models.length > 0 || data.paid_llm_other_model))
+    ctx.addIssue({ code: "custom", path: ["paid_llm_models"], message: "Clear model choices when you do not have a paid subscription" });
+  if (data.paid_llm_subscription === "Yes" && data.paid_llm_models.includes("Other") && !data.paid_llm_other_model)
+    ctx.addIssue({ code: "custom", path: ["paid_llm_other_model"], message: "Enter the other model or service" });
+  if (!data.paid_llm_models.includes("Other") && data.paid_llm_other_model)
+    ctx.addIssue({ code: "custom", path: ["paid_llm_other_model"], message: "Select Other to enter a model or service" });
   const normalizeName = (value: string) => value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en");
   if (normalizeName(data.full_name) !== normalizeName(data.bank_account_holder_name))
     ctx.addIssue({ code: "custom", path: ["bank_account_holder_name"], message: "The bank account must be in your name, matching the full name above" });

@@ -7,6 +7,7 @@ const valid = {
   programming_languages: ["Python"], programming_level: "Intermediate", python_familiarity: "Basic",
   api_experience: "Yes", ai_familiarity: "Basic", agent_experience: "No", attendance: "Both Days",
   traditional_development: "Yes", ai_tools_basics: "Yes", built_software_project: "No",
+  paid_llm_subscription: "No", paid_llm_models: [], paid_llm_other_model: "", local_model_laptop: "Not Sure",
   bringing_laptop: "Yes", development_environment: "Not Sure", learning_expectations: "Build an agent",
   payment_method: "bkash", payment_transaction_id: " ab12cd34 ", bank_name: "Example Bank", bank_account_holder_name: "Test Participant",
   bank_account_number: "1234567890", bank_branch: "Dhaka",
@@ -27,6 +28,14 @@ describe("registration validation", () => {
     expect(paymentAmount("Day 1 Only")).toBe(1000);
     expect(paymentAmount("Day 2 Only")).toBe(1000);
     expect(paymentAmount("Both Days")).toBe(2000);
+  });
+  it("requires model choices for paid subscriptions and a name for Other", () => {
+    expect(registrationSchema.safeParse({ ...valid, paid_llm_subscription: "Yes" }).success).toBe(false);
+    expect(registrationSchema.safeParse({ ...valid, paid_llm_subscription: "Yes", paid_llm_models: ["Claude", "Gemini"] }).success).toBe(true);
+    expect(registrationSchema.safeParse({ ...valid, paid_llm_subscription: "Yes", paid_llm_models: ["Other"] }).success).toBe(false);
+    expect(registrationSchema.safeParse({ ...valid, paid_llm_subscription: "Yes", paid_llm_models: ["Other"], paid_llm_other_model: "Qwen" }).success).toBe(true);
+    expect(registrationSchema.safeParse({ ...valid, paid_llm_models: ["Claude"] }).success).toBe(false);
+    expect(registrationSchema.safeParse({ ...valid, local_model_laptop: undefined }).success).toBe(false);
   });
   it("accepts Rocket payments and keeps an unconfirmed Nagad number out of settings", () => {
     expect(registrationSchema.safeParse({ ...valid, payment_method: "rocket" }).success).toBe(true);
