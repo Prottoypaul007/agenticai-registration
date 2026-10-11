@@ -8,7 +8,7 @@ For email tickets and workshop check-in, see [CHECKIN_SETUP.md](CHECKIN_SETUP.md
 
 1. Create a Supabase project. In **Project Settings → API**, copy the **Project URL**, **anon/publishable key**, and **service_role/secret key**.
 2. Copy `.env.example` to `.env.local`. Replace `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` with your own values. The service role key must stay server side. Never prefix it with `NEXT_PUBLIC_` or commit `.env.local`.
-3. Open the Supabase **SQL Editor** and run the migrations in order: `001_initial.sql`, `002_remove_spam_protection.sql` (only if the older version of 001 was already installed), `003_payment_and_refunds.sql`, `004_payment_methods.sql`, `005_llm_readiness_questions.sql`, `006_email_and_checkin.sql`, `007_manual_review_and_qr_delivery.sql`, `008_batch14_google_sheet.sql`, and `009_batch14_beyond_website_capacity.sql`. For a live project already at 008, run only 009. Migration 009 lets Batch 14 imports continue after the website reaches its closing threshold.
+3. Open the Supabase **SQL Editor** and run the migrations in order: `001_initial.sql`, `002_remove_spam_protection.sql` (only if the older version of 001 was already installed), `003_payment_and_refunds.sql`, `004_payment_methods.sql`, `005_llm_readiness_questions.sql`, `006_email_and_checkin.sql`, `007_manual_review_and_qr_delivery.sql`, `008_batch14_google_sheet.sql`, `009_batch14_beyond_website_capacity.sql`, and `010_batch14_import_payment_conflicts.sql`. For a live project already at 009, run only 010. Migration 009 lets Batch 14 imports continue after the website reaches its closing threshold. Migration 010 imports rows with duplicate transaction IDs for admin review while blocking QR delivery until the sheet is corrected and synced.
 4. In **Authentication → Users**, create an admin user with an email and password. Copy its UUID. Add it to the allowlist in SQL Editor:
 
    ```sql
@@ -61,7 +61,7 @@ Pending registrations do **not** count as confirmed. Payment must be verified be
 4. Check each Batch 14 transaction ID against the payment account, then click **Verify payment & send QR** for that student. QR delivery uses the existing Google Workspace sender. The Form has no attendance choice, so imported students are registered for both days. Other Form answers remain visible to admins in the Batch 14 details.
 5. Turn on **Open remaining seats to outside registrations** in **Event settings** and save. The website closes when the combined count reaches capacity (45 for this event). The Batch 14 Google Form can keep collecting responses beyond that threshold, and syncing imports them for admin review. Batch 14 students use only the Google Form. The public total count and the **Present** tab include both groups.
 
-The Google Sheets connection also syncs new Form responses before each outside registration is accepted, so the current Batch 14 responses take priority in the shared capacity check. It never edits the spreadsheet. The admin Sync button updates the dashboard and public count without waiting for an outside submission. If Google Sheets is temporarily unavailable, outside submissions pause rather than risk overbooking Batch 14 places.
+The Google Sheets connection also syncs new Form responses before each outside registration is accepted, so the current Batch 14 responses take priority in the shared capacity check. It never edits the spreadsheet. The Batch 14 dashboard syncs on opening and every minute while visible; the Sync button refreshes it immediately. If Google Sheets is temporarily unavailable, outside submissions pause rather than risk overbooking Batch 14 places.
 
 ## 4. Vercel deployment
 
@@ -69,7 +69,7 @@ The Google Sheets connection also syncs new Form responses before each outside r
 2. Import it into Vercel as a Next.js project.
 3. Add the Supabase, Gmail API, and check-in signing variables from `.env.example` in Vercel **Project Settings → Environment Variables**.
 4. Set Supabase Auth's Site URL to the production domain.
-5. For a fresh project, apply migrations 001 through 009 in order, then deploy. For the current live site on 008, apply migration 009, add the Google Sheets environment variables to Vercel Production, redeploy, verify sheet sync, and reopen outside registration from the admin dashboard. The build runs `next build`.
+5. For a fresh project, apply migrations 001 through 010 in order, then deploy. For the current live site on 009, apply migration 010, add the Google Sheets environment variables to Vercel Production, redeploy, verify sheet sync, and reopen outside registration from the admin dashboard. The build runs `next build`.
 
 ## Security design
 

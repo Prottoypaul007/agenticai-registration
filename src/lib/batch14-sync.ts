@@ -13,5 +13,6 @@ export async function syncBatch14Registrations(adminId?: string) {
   const { data, error } = await client.rpc("admin_import_batch14", { p_admin_id: reviewerId, p_rows: rows });
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
-  return { read: rows.length, added: Number(data.added || 0), skipped: Number(data.skipped || 0) };
+  return { read: rows.length, added: Number(data.added || 0), skipped: Number(data.skipped || 0),
+    conflicts: Number(data.conflicts || 0), resolved: Number(data.resolved || 0) };
 }
