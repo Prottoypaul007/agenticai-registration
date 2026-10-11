@@ -1,0 +1,43 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { buildGmailMessage, sendGmailMessage } from "./gmail";
+
+const message = { to: "participant@example.com", subject: "Workshop registration AGNT-ABCDEF123456",
+  html: '<p>Ticket <img src="cid:workshop-checkin-qr"></p>', text: "Ticket attached",
+  qrPngBase64: Buffer.from("test-image").toString("base64"), reference: "AGNT-ABCDEF123456" };
+const savedEnv = { ...process.env };
+const savedFetch = globalThis.fetch;
+
+beforeEach(() => {
+  process.env.GMAIL_SENDER_EMAIL = "no-reply@example.com";
+  process.env.GOOGLE_OAUTH_CLIENT_ID = "client-id";
+  process.env.GOOGLE_OAUTH_CLIENT_SECRET = "client-secret";
+  process.env.GOOGLE_OAUTH_REFRESH_TOKEN = "refresh-token";
+});
+afterEach(() => { process.env = { ...savedEnv }; globalThis.fetch = savedFetch; });
+
+describe("Gmail registration delivery", () => {
+  it("builds a MIME message with an inline and downloadable QR", () => {
+    const mime = Buffer.from(buildGmailMessage(message, "no-reply@example.com"), "base64url").toString("utf8");
+    expect(mime).toContain("From: Workshop <no-reply@example.com>");
+    expect(mime).toContain("To: participant@example.com");
+    expect(mime).toContain("Content-ID: <workshop-checkin-qr>");
+    expect(mime).toContain('Content-Disposition: attachment; filename="workshop-AGNT-ABCDEF123456.png"');
+    expect(mime).toContain(message.qrPngBase64);
+  });
+  it("refreshes OAuth and sends the encoded message through Gmail API", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: "access-token" }) })
+      .mockResolvedValueOnce({ ok: true });
+    globalThis.fetch = fetchMock;
+    await sendGmailMessage(message);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0][0]).toBe("https://oauth2.googleapis.com/token");
+    expect(fetchMock.mock.calls[1][0]).toBe("https://gmail.googleapis.com/gmail/v1/users/me/messages/send");
+    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe("Bearer access-token");
+  });
+  it("never sends if OAuth refresh fails", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 });
+    globalThis.fetch = fetchMock;
+    await expect(sendGmailMessage(message)).rejects.toThrow("Google OAuth token refresh failed");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

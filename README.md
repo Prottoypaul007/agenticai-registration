@@ -2,11 +2,13 @@
 
 Next.js, TypeScript, Tailwind CSS, shadcn-style UI components, Framer Motion, Supabase, React Hook Form, and Zod. The workshop is October 17–18, 2026 at the Institute of Information Technology (IIT).
 
+For email tickets and workshop check-in, see [CHECKIN_SETUP.md](CHECKIN_SETUP.md).
+
 ## 1. Supabase setup
 
 1. Create a Supabase project. In **Project Settings → API**, copy the **Project URL**, **anon/publishable key**, and **service_role/secret key**.
 2. Copy `.env.example` to `.env.local`. Replace `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` with your own values. The service role key must stay server side. Never prefix it with `NEXT_PUBLIC_` or commit `.env.local`.
-3. Open the Supabase **SQL Editor** and run the migrations in order: `001_initial.sql`, `002_remove_spam_protection.sql` (only if the older version of 001 was already installed), `003_payment_and_refunds.sql`, `004_payment_methods.sql`, then `005_llm_readiness_questions.sql`. If you already ran 001–004, run only `005_llm_readiness_questions.sql` now. The migrations preserve existing registrations and payment records; older registrations have blank answers for the new questions.
+3. Open the Supabase **SQL Editor** and run the migrations in order: `001_initial.sql`, `002_remove_spam_protection.sql` (only if the older version of 001 was already installed), `003_payment_and_refunds.sql`, `004_payment_methods.sql`, then `005_llm_readiness_questions.sql` and `006_email_and_checkin.sql`. If you already ran 001–004, run `005_llm_readiness_questions.sql` and `006_email_and_checkin.sql` now. The migrations preserve existing registrations and payment records; older registrations have blank answers for the new questions.
 4. In **Authentication → Users**, create an admin user with an email and password. Copy its UUID. Add it to the allowlist in SQL Editor:
 
    ```sql
@@ -55,9 +57,9 @@ Pending registrations do **not** count as confirmed. Payment must be verified be
 
 1. Push this project to a private or public Git repository without `.env.local`.
 2. Import it into Vercel as a Next.js project.
-3. Add the three Supabase variables from `.env.example` in Vercel **Project Settings → Environment Variables**.
+3. Add the Supabase, Gmail API, and check-in signing variables from `.env.example` in Vercel **Project Settings → Environment Variables**.
 4. Set Supabase Auth's Site URL to the production domain.
-5. Apply `004_payment_methods.sql` and `005_llm_readiness_questions.sql` after the earlier migrations, then deploy. The build runs `next build`. Verify the payment destination numbers and test registration flow before accepting real payments.
+5. Apply `004_payment_methods.sql`, `005_llm_readiness_questions.sql`, and `006_email_and_checkin.sql` after the earlier migrations, then deploy. The build runs `next build`. Verify the payment destination numbers and test registration flow before accepting real payments.
 
 ## Security design
 

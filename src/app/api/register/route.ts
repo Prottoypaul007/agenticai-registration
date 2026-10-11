@@ -3,6 +3,7 @@ import { registrationSchema } from "@/lib/validation";
 import { configured } from "@/lib/utils";
 import { serviceClient } from "@/lib/supabase";
 import { signConfirmation } from "@/lib/confirmation";
+import { sendRegistrationEmail } from "@/lib/registration-email";
 
 export async function POST(request: NextRequest) {
   if (!configured()) return NextResponse.json({ error: "Registration is awaiting Supabase setup." }, { status: 503 });
@@ -30,5 +31,9 @@ export async function POST(request: NextRequest) {
     const match = Object.entries(known).find(([key]) => code.includes(key));
     return NextResponse.json({ error: match?.[1][0] || "Unable to submit registration. Please try again." }, { status: match?.[1][1] || 500 });
   }
-  return NextResponse.json({ reference: data.reference, status: data.status, proof: signConfirmation(data.reference, data.status) }, { status: 201 });
+  // The registration is durable even if the mail provider is temporarily unavailable.
+  let emailSent = false;
+  try { emailSent = await sendRegistrationEmail(data.reference); }
+  catch (sendError) { console.error("Registration saved but confirmation email could not be prepared", sendError); }
+  return NextResponse.json({ reference: data.reference, status: data.status, proof: signConfirmation(data.reference, data.status), emailSent }, { status: 201 });
 }

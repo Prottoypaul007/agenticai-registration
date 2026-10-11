@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, ShieldCheck, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Copy, Loader2, ShieldCheck, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/field";
 import { paymentAmount, registrationSchema, type EventSettings, type RegistrationInput } from "@/lib/validation";
@@ -22,6 +22,8 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
   const [attemptedSteps, setAttemptedSteps] = useState([false, false, false]);
   const [serverError, setServerError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [copiedNumber, setCopiedNumber] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState("");
   const router = useRouter();
   const { register, handleSubmit, watch, setValue, setError, trigger, formState: { errors, touchedFields } } = useForm<RegistrationInput>({
     resolver: zodResolver(registrationSchema), mode: "onTouched",
@@ -40,9 +42,21 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
   const method = watch("payment_method") || "bkash";
   const paymentNumbers = { bkash: settings.bkash_merchant_number, rocket: settings.rocket_number, nagad: settings.nagad_number };
   const paymentNumber = paymentNumbers[method];
-  const error = (name: keyof RegistrationInput) => (attemptedSteps[step] || touchedFields[name]) && errors[name]?.message && <p role="alert" className="mt-1.5 text-xs text-rose-300">{String(errors[name]?.message)}</p>;
+  const methodLabel = method === "bkash" ? "bKash" : method === "rocket" ? "Rocket" : "Nagad";
+  const error = (name: keyof RegistrationInput) => (attemptedSteps[step] || (step < 2 && touchedFields[name])) && errors[name]?.message && <p role="alert" className={`mt-1.5 text-xs ${step === 2 ? "text-amber-200" : "text-rose-300"}`}>{String(errors[name]?.message)}</p>;
   const label = (name: keyof RegistrationInput, text: string, required: boolean, children: React.ReactNode) => <label className="block"><span className="mb-2 block text-sm font-medium text-slate-200">{text} {required && <span className="text-cyan-400">*</span>}</span>{children}{error(name)}</label>;
   const yesNo = (name: keyof RegistrationInput, title: string) => label(name, title, true, <Select defaultValue="" {...register(name)}><option value="" disabled>Select an answer</option><option>Yes</option><option>No</option></Select>);
+  const copyPaymentNumber = async () => {
+    if (!paymentNumber) return;
+    try {
+      await navigator.clipboard.writeText(paymentNumber);
+      setCopiedNumber(paymentNumber);
+      setCopyError("");
+    } catch {
+      setCopiedNumber(null);
+      setCopyError("Could not copy. Please select the number manually.");
+    }
+  };
   const next = async () => {
     setAttemptedSteps(previous => previous.map((attempted, index) => index === step ? true : attempted));
     const valid = await trigger(stepFields[step]);
@@ -61,7 +75,7 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
       router.push(`/registration-success?ref=${encodeURIComponent(result.reference)}&status=${encodeURIComponent(result.status)}&proof=${encodeURIComponent(result.proof)}`);
     } catch { setServerError("Network error. Please check your connection and try again."); }
     finally { setSubmitting(false); }
-  }, () => { setAttemptedSteps(previous => previous.map((attempted, index) => index === step ? true : attempted)); setServerError("Please check the highlighted fields."); });
+  }, () => { setAttemptedSteps(previous => previous.map((attempted, index) => index === step ? true : attempted)); setServerError(""); });
 
   return <div className="panel mx-auto max-w-4xl overflow-hidden rounded-3xl">
     <div className="border-b border-white/10 px-4 py-7 sm:px-6 md:px-10"><div className="flex items-center justify-between gap-4"><div><p className="text-xs font-semibold tracking-widest text-cyan-300 uppercase">Registration</p><h3 className="mt-1 text-lg font-semibold sm:text-xl">{steps[step]}</h3></div><span className="font-mono text-sm text-slate-400">0{step + 1} / 03</span></div><div className="mt-6 grid grid-cols-3 gap-2" aria-label={`Step ${step + 1} of 3`}>{steps.map((s, i) => <div key={s} className="h-1.5 rounded-full" style={{ background: i <= step ? "#55d9e6" : "#26384e" }}/>)}</div><div className="mt-3 hidden justify-between gap-2 text-[11px] text-slate-500 sm:flex">{steps.map(s => <span key={s}>{s}</span>)}</div></div>
@@ -96,7 +110,7 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
         {label("development_environment", "Is a development environment installed?", true, <Select defaultValue="" {...register("development_environment")}><option value="" disabled>Select an option</option><option>Yes</option><option>No</option><option>Not Sure</option></Select>)}
         {label("local_model_laptop", "Do you have a laptop capable of running a local open-source AI model?", true, <Select defaultValue="" {...register("local_model_laptop")}><option value="" disabled>Select an answer</option><option>Yes</option><option>No</option><option value="Not Sure">Not sure</option></Select>)}
         <div className="sm:col-span-2">{label("learning_expectations", "What do you expect to learn?", false, <Textarea rows={3} placeholder="Tell us what you're hoping to explore..." {...register("learning_expectations")}/>)}</div>
-        <div className="sm:col-span-2 rounded-2xl border border-cyan-400/25 bg-cyan-400/7 p-6"><div className="flex items-center gap-2 text-cyan-200"><Wallet size={19}/><h4 className="font-semibold">Payment</h4></div><p className="mt-3 text-sm leading-6 text-slate-300">Each workshop day costs ৳1,000. Pay <strong className="text-white">৳{amount.toLocaleString("en-US")}</strong> for your selected attendance using one of the available methods, then enter the transaction ID from your receipt.</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="text-sm text-slate-200">Payment method<Select className="mt-2" {...register("payment_method")}><option value="bkash" disabled={!settings.bkash_merchant_number}>bKash</option><option value="rocket" disabled={!settings.rocket_number}>Rocket</option><option value="nagad" disabled={!settings.nagad_number}>Nagad</option></Select></label><div className="rounded-xl bg-[#0c1d2e] px-4 py-3 text-sm"><span className="block text-slate-400">{method === "bkash" ? "bKash" : method === "rocket" ? "Rocket" : "Nagad"} number</span><strong className="mt-1 block font-mono text-lg text-cyan-200">{paymentNumber || "Not available"}</strong></div></div><p className="mt-3 text-xs leading-5 text-slate-400">Keep your payment receipt. Your transaction details will be reviewed before the payment is recorded as verified.</p></div>
+        <div className="sm:col-span-2 rounded-2xl border border-cyan-400/25 bg-cyan-400/7 p-6"><div className="flex items-center gap-2 text-cyan-200"><Wallet size={19}/><h4 className="font-semibold">Payment</h4></div><p className="mt-3 text-sm leading-6 text-slate-300">Each workshop day costs ৳1,000. Pay <strong className="text-white">৳{amount.toLocaleString("en-US")}</strong> for your selected attendance using one of the available methods, then enter the transaction ID from your receipt.</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="text-sm text-slate-200">Payment method<Select className="mt-2" {...register("payment_method", { onChange: () => { setCopiedNumber(null); setCopyError(""); } })}><option value="bkash" disabled={!settings.bkash_merchant_number}>bKash</option><option value="rocket" disabled={!settings.rocket_number}>Rocket</option><option value="nagad" disabled={!settings.nagad_number}>Nagad</option></Select></label><div className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-[#0c1d2e] px-4 py-3 text-sm"><div className="min-w-0"><span className="block text-slate-400">{methodLabel} number</span><strong className="mt-1 block break-all font-mono text-base text-cyan-200 sm:text-lg">{paymentNumber || "Not available"}</strong></div><button type="button" onClick={copyPaymentNumber} disabled={!paymentNumber} aria-label={`Copy ${methodLabel} number`} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-cyan-400/30 px-3 font-medium text-cyan-200 transition hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">{paymentNumber && copiedNumber === paymentNumber ? <Check size={15}/> : <Copy size={15}/>}<span>{paymentNumber && copiedNumber === paymentNumber ? "Copied" : "Copy"}</span></button></div></div>{copyError && <p role="status" className="mt-2 text-xs text-amber-200">{copyError}</p>}<p className="mt-3 text-xs leading-5 text-slate-400">Keep your payment receipt. Your transaction details will be reviewed before the payment is recorded as verified.</p></div>
         <div className="sm:col-span-2">{label("payment_transaction_id", "Payment transaction ID", true, <Input autoComplete="off" placeholder="From your payment receipt" {...register("payment_transaction_id")}/>)}</div>
         <div className="sm:col-span-2 border-t border-white/10 pt-6"><h4 className="text-lg font-semibold">Bank account for your refund</h4><p className="mt-2 text-sm leading-6 text-slate-400">The amount you pay will be refunded to your own bank account after completing the workshop. The account holder name must match the full name in this form.</p></div>
         {label("bank_name", "Bank name", true, <Input placeholder="Your bank" {...register("bank_name")}/>)}
