@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminUser, serviceClient } from "@/lib/supabase";
-import { readBatch14Sheet } from "@/lib/batch14-sheet";
+import { syncBatch14Registrations } from "@/lib/batch14-sync";
 import { sendBatch14Email } from "@/lib/registration-email";
 
 export async function GET(request: NextRequest) {
@@ -24,17 +24,14 @@ export async function POST(request: NextRequest) {
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
   if (body.action === "sync") {
     try {
-      const rows = await readBatch14Sheet();
-      const { data, error } = await serviceClient().rpc("admin_import_batch14", { p_admin_id: admin.id, p_rows: rows });
-      if (error) return NextResponse.json({ error: error.message.includes("registration_full") ?
-        "Capacity is full. Increase the capacity or resolve existing registrations before syncing Batch 14." :
-        error.message.includes("changed identity") ? "A Google Sheet row changed identity after import. Restore the original response row order." :
-        error.message.includes("duplicate transaction") ? "The sheet contains a transaction ID already used by another registration. Correct the response sheet and sync again." :
-        "Unable to import Batch 14. Check migration 008 and the sheet rows." }, { status: 409 });
-      if (data?.error) return NextResponse.json({ error: "Capacity is full. Batch 14 could not be fully imported." }, { status: 409 });
-      return NextResponse.json({ ...data, read: rows.length });
+      return NextResponse.json(await syncBatch14Registrations(admin.id));
     } catch (error) {
-      return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to read the Google Sheet." }, { status: 400 });
+      const message = error instanceof Error ? error.message : "";
+      return NextResponse.json({ error: message.includes("registration_full") ?
+        "Capacity is full. Increase capacity or resolve existing registrations before syncing Batch 14." :
+        message.includes("changed identity") ? "A Google Sheet row changed identity after import. Restore the original response row order." :
+        message.includes("duplicate transaction") ? "The sheet contains a transaction ID already used by another registration. Correct it and sync again." :
+        message || "Unable to read the Google Sheet." }, { status: 409 });
     }
   }
   if (body.action !== "send_qr" || typeof body.id !== "string" ||

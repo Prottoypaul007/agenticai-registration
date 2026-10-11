@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const rpc = vi.fn();
+const { rpc, getSettings, syncBatch14Registrations } = vi.hoisted(() => ({ rpc: vi.fn(), getSettings: vi.fn(), syncBatch14Registrations: vi.fn() }));
 vi.mock("@/lib/utils", () => ({ configured: () => true }));
-vi.mock("@/lib/supabase", () => ({ serviceClient: () => ({ rpc }) }));
+vi.mock("@/lib/supabase", () => ({ serviceClient: () => ({ rpc }), getSettings }));
+vi.mock("@/lib/batch14-sync", () => ({ syncBatch14Registrations }));
 import { POST } from "./route";
 
 const payload = {
@@ -19,12 +20,29 @@ const payload = {
   declaration_accepted: true, privacy_accepted: true
 };
 describe("public registration route", () => {
-  beforeEach(() => rpc.mockReset());
+  beforeEach(() => {
+    rpc.mockReset(); getSettings.mockReset(); syncBatch14Registrations.mockReset();
+    getSettings.mockResolvedValue({ outsider_registration_enabled: true });
+    syncBatch14Registrations.mockResolvedValue({ read: 6, added: 0, skipped: 6 });
+  });
+  it("explains the Batch 14 pause to an already-open registration form", async () => {
+    rpc.mockResolvedValue({ data: { error: "registration_closed" }, error: null });
+    getSettings.mockResolvedValue({ outsider_registration_enabled: false });
+    const response = await POST(new NextRequest("http://localhost/api/register", { method: "POST", body: JSON.stringify(payload) }));
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ code: "batch14_first" });
+  });
   it("returns a conflict when the atomic database function detects a duplicate", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "duplicate_registration" } });
     const response = await POST(new NextRequest("http://localhost/api/register", { method: "POST", body: JSON.stringify(payload) }));
     expect(response.status).toBe(409);
     expect(rpc).toHaveBeenCalledWith("submit_registration", expect.objectContaining({ p_payload: expect.objectContaining({ email: "test@example.com", paid_llm_models: ["Claude", "Gemini"], local_model_laptop: "Yes" }) }));
+  });
+  it("stops outside submission if the live Batch 14 sheet cannot be synced", async () => {
+    syncBatch14Registrations.mockRejectedValue(new Error("Google Sheet unavailable"));
+    const response = await POST(new NextRequest("http://localhost/api/register", { method: "POST", body: JSON.stringify(payload) }));
+    expect(response.status).toBe(503);
+    expect(rpc).not.toHaveBeenCalled();
   });
   it("rejects an already-used payment transaction ID", async () => {
     rpc.mockResolvedValue({ data: { error: "duplicate_transaction" }, error: null });

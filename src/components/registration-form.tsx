@@ -22,6 +22,7 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
   const [attemptedSteps, setAttemptedSteps] = useState([false, false, false]);
   const [serverError, setServerError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [registrationPaused, setRegistrationPaused] = useState(false);
   const [copiedNumber, setCopiedNumber] = useState<string | null>(null);
   const [copyError, setCopyError] = useState("");
   const router = useRouter();
@@ -71,7 +72,11 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
     try {
       const response = await fetch("/api/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...values, attendance: settings.allow_single_day ? values.attendance : "Both Days" }) });
       const result = await response.json();
-      if (!response.ok) { setServerError(result.error || "Submission failed. Please try again."); return; }
+      if (!response.ok) {
+        setServerError(result.error || "Submission failed. Please try again.");
+        if (result.code === "batch14_first") setRegistrationPaused(true);
+        return;
+      }
       router.push(`/registration-success?ref=${encodeURIComponent(result.reference)}&status=${encodeURIComponent(result.status)}&proof=${encodeURIComponent(result.proof)}`);
     } catch { setServerError("Network error. Please check your connection and try again."); }
     finally { setSubmitting(false); }
@@ -120,7 +125,7 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
         <div className="sm:col-span-2 space-y-4 border-t border-white/10 pt-6"><label className="flex items-start gap-3 text-sm leading-6 text-slate-300"><input type="checkbox" className="mt-1 h-4 w-4 accent-cyan-400" {...register("declaration_accepted")}/><span>I confirm my details and payment transaction ID are accurate, the bank account is in my name, and I have reviewed the workshop prerequisites and refund condition. <span className="text-cyan-400">*</span>{error("declaration_accepted")}</span></label><label className="flex items-start gap-3 text-sm leading-6 text-slate-300"><input type="checkbox" className="mt-1 h-4 w-4 accent-cyan-400" {...register("privacy_accepted")}/><span>I acknowledge that the event team will use my registration, payment transaction ID, and bank details to verify payment and arrange the refund after completion. <span className="text-cyan-400">*</span>{error("privacy_accepted")}</span></label></div>
       </div>}
       {serverError && <div role="alert" className="mt-6 rounded-xl border border-rose-400/30 bg-rose-400/10 p-4 text-sm text-rose-200">{serverError}</div>}
-      <div className="mt-9 flex flex-col-reverse items-stretch gap-3 border-t border-white/10 pt-7 sm:flex-row sm:items-center sm:justify-between"><div className="sm:mr-auto">{step > 0 && <Button className="w-full sm:w-auto" type="button" variant="ghost" onClick={() => { setStep(step - 1); setServerError(""); }}><ArrowLeft size={17}/> Back</Button>}</div>{step < 2 ? <Button className="w-full sm:w-auto" type="button" onClick={next}>Continue <ArrowRight size={17}/></Button> : <Button className="w-full sm:w-auto" type="submit" disabled={submitting || !paymentNumber}>{submitting ? <Loader2 size={17} className="animate-spin"/> : <CheckCircle2 size={17}/>} {submitting ? "Submitting..." : "Submit Registration"}</Button>}</div>
+      <div className="mt-9 flex flex-col-reverse items-stretch gap-3 border-t border-white/10 pt-7 sm:flex-row sm:items-center sm:justify-between"><div className="sm:mr-auto">{step > 0 && <Button className="w-full sm:w-auto" type="button" variant="ghost" onClick={() => { setStep(step - 1); setServerError(""); }}><ArrowLeft size={17}/> Back</Button>}</div>{step < 2 ? <Button className="w-full sm:w-auto" type="button" onClick={next}>Continue <ArrowRight size={17}/></Button> : <Button className="w-full sm:w-auto" type="submit" disabled={submitting || !paymentNumber || registrationPaused}>{submitting ? <Loader2 size={17} className="animate-spin"/> : <CheckCircle2 size={17}/>} {submitting ? "Submitting..." : registrationPaused ? "Registration paused" : "Submit Registration"}</Button>}</div>
     </form><div className="flex items-center justify-center gap-2 border-t border-white/10 bg-white/2 px-6 py-4 text-xs text-slate-500"><ShieldCheck size={15}/> Payment and bank details are visible only to authorized workshop administrators.</div>
   </div>;
 }

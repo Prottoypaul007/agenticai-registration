@@ -74,17 +74,27 @@ export async function readBatch14Sheet(): Promise<Batch14Row[]> {
   const sheetId = Number(process.env.GOOGLE_SHEETS_GID);
   if (!clientEmail || !privateKey || !spreadsheetId || !Number.isInteger(sheetId) || sheetId <= 0)
     throw new Error("Configure the Google Sheets service account, spreadsheet ID, and tab GID.");
-  const now = Math.floor(Date.now() / 1000);
-  const header = base64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const claim = base64url(JSON.stringify({ iss: clientEmail, scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
-    aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 }));
-  const payload = `${header}.${claim}`;
-  const signer = createSign("RSA-SHA256"); signer.update(payload); signer.end();
-  const assertion = `${payload}.${signer.sign(privateKey).toString("base64url")}`;
-  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", { method: "POST", cache: "no-store",
-    signal: AbortSignal.timeout(10000),
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }) });
+  async function requestToken(timeSeconds: number) {
+    const now = Math.floor(timeSeconds);
+    const header = base64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+    const claim = base64url(JSON.stringify({ iss: clientEmail, scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
+      aud: "https://oauth2.googleapis.com/token", iat: now - 30, exp: now + 3300 }));
+    const payload = `${header}.${claim}`;
+    const signer = createSign("RSA-SHA256"); signer.update(payload); signer.end();
+    const assertion = `${payload}.${signer.sign(privateKey!).toString("base64url")}`;
+    return fetch("https://oauth2.googleapis.com/token", { method: "POST", cache: "no-store",
+      signal: AbortSignal.timeout(10000),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }) });
+  }
+  let tokenResponse = await requestToken(Date.now() / 1000);
+  if (!tokenResponse.ok && tokenResponse.status === 400) {
+    const googleTime = Date.parse(tokenResponse.headers.get("date") || "");
+    if (Number.isFinite(googleTime) && Math.abs(googleTime - Date.now()) > 60_000 &&
+        Math.abs(googleTime - Date.now()) < 86_400_000) {
+      tokenResponse = await requestToken(googleTime / 1000);
+    }
+  }
   if (!tokenResponse.ok) throw new Error("Google service account authentication failed. Check its email and private key.");
   const token = await tokenResponse.json() as { access_token?: string };
   if (!token.access_token) throw new Error("Google did not return a Sheets access token.");

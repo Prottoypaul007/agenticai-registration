@@ -61,7 +61,7 @@ Pending registrations do **not** count as confirmed. Payment must be verified be
 4. Check each Batch 14 transaction ID against the payment account, then click **Verify payment & send QR** for that student. QR delivery uses the existing Google Workspace sender. The Form has no attendance choice, so imported students are registered for both days. Other Form answers remain visible to admins in the Batch 14 details.
 5. After all Batch 14 responses are synced, turn on **Open remaining seats to outside registrations** in **Event settings** and save. Batch 14 and outside registrations share the same seat limit and public total count. The **Present** tab lists check-ins from both groups together for each workshop day.
 
-The Google Sheets connection reads the Form response tab only when an admin clicks Sync. It never edits the spreadsheet. New Form responses need another sync before they reserve a seat.
+The Google Sheets connection also syncs new Form responses before each outside registration is accepted, so the current Batch 14 responses take priority in the shared capacity check. It never edits the spreadsheet. The admin Sync button updates the dashboard and public count without waiting for an outside submission. If Google Sheets is temporarily unavailable, outside submissions pause rather than risk overbooking Batch 14 places.
 
 ## 4. Vercel deployment
 
