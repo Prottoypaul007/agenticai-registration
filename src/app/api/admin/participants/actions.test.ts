@@ -12,10 +12,10 @@ describe("admin payment and refund actions", () => {
     expect(response.status).toBe(400);
     expect(rpc).not.toHaveBeenCalled();
   });
-  it("delegates payment verification to the database transition function", async () => {
+  it("requires payment review through the QR delivery action", async () => {
     rpc.mockResolvedValue({ data: { ok: true }, error: null });
     const response = await PATCH(new NextRequest("http://localhost/api/admin/participants", { method: "PATCH", body: JSON.stringify({ id, action: "verify_payment" }) }));
-    expect(response.status).toBe(200);
-    expect(rpc).toHaveBeenCalledWith("admin_registration_action", { p_id: id, p_action: "verify_payment", p_ref: null });
+    expect(response.status).toBe(400);
+    expect(rpc).not.toHaveBeenCalled();
   });
 });

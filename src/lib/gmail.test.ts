@@ -24,6 +24,13 @@ describe("Gmail registration delivery", () => {
     expect(mime).toContain('Content-Disposition: attachment; filename="workshop-AGNT-ABCDEF123456.png"');
     expect(mime).toContain(message.qrPngBase64);
   });
+  it("builds a cancellation message without any QR attachment", () => {
+    const { qrPngBase64: _qr, ...notice } = message;
+    const mime = Buffer.from(buildGmailMessage(notice, "no-reply@example.com"), "base64url").toString("utf8");
+    expect(mime).toContain("multipart/alternative");
+    expect(mime).not.toContain("workshop-checkin-qr");
+    expect(mime).not.toContain("Content-Disposition: attachment");
+  });
   it("refreshes OAuth and sends the encoded message through Gmail API", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: "access-token" }) })
       .mockResolvedValueOnce({ ok: true });

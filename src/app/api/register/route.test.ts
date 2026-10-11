@@ -31,4 +31,10 @@ describe("public registration route", () => {
     const response = await POST(new NextRequest("http://localhost/api/register", { method: "POST", body: JSON.stringify(payload) }));
     expect(response.status).toBe(409);
   });
+  it("stores a registration for review without issuing a QR or sending email", async () => {
+    rpc.mockResolvedValue({ data: { reference: "AGNT-ABCDEF123456", status: "pending" }, error: null });
+    const response = await POST(new NextRequest("http://localhost/api/register", { method: "POST", body: JSON.stringify(payload) }));
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ reference: "AGNT-ABCDEF123456", status: "pending" });
+  });
 });

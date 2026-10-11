@@ -8,7 +8,7 @@ For email tickets and workshop check-in, see [CHECKIN_SETUP.md](CHECKIN_SETUP.md
 
 1. Create a Supabase project. In **Project Settings → API**, copy the **Project URL**, **anon/publishable key**, and **service_role/secret key**.
 2. Copy `.env.example` to `.env.local`. Replace `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` with your own values. The service role key must stay server side. Never prefix it with `NEXT_PUBLIC_` or commit `.env.local`.
-3. Open the Supabase **SQL Editor** and run the migrations in order: `001_initial.sql`, `002_remove_spam_protection.sql` (only if the older version of 001 was already installed), `003_payment_and_refunds.sql`, `004_payment_methods.sql`, then `005_llm_readiness_questions.sql` and `006_email_and_checkin.sql`. If you already ran 001–004, run `005_llm_readiness_questions.sql` and `006_email_and_checkin.sql` now. The migrations preserve existing registrations and payment records; older registrations have blank answers for the new questions.
+3. Open the Supabase **SQL Editor** and run the migrations in order: `001_initial.sql`, `002_remove_spam_protection.sql` (only if the older version of 001 was already installed), `003_payment_and_refunds.sql`, `004_payment_methods.sql`, then `005_llm_readiness_questions.sql`, `006_email_and_checkin.sql`, and `007_manual_review_and_qr_delivery.sql`. If you already ran 001–004, run `005_llm_readiness_questions.sql`, `006_email_and_checkin.sql`, and `007_manual_review_and_qr_delivery.sql` now. The migrations preserve existing registrations and payment records; older registrations have blank answers for the new questions.
 4. In **Authentication → Users**, create an admin user with an email and password. Copy its UUID. Add it to the allowlist in SQL Editor:
 
    ```sql
@@ -17,7 +17,7 @@ For email tickets and workshop check-in, see [CHECKIN_SETUP.md](CHECKIN_SETUP.md
 
    Public signup is not implemented. Authentication alone does not grant admin access; the UUID must be inserted by a trusted project owner.
 5. In **Authentication → URL Configuration**, set the Site URL to `http://localhost:3000` for local use or your production domain after deployment. Password sign-in uses Supabase Auth cookies.
-6. Migration 004 sets the organizer-provided bKash number to `01817889286` and Rocket account number to `018178892865`. It opens registration and turns off separate admin approval. Nagad remains disabled until the organizer confirms its number. These numbers can later be changed in `/admin` → **Event settings**.
+6. Migration 004 sets the organizer-provided bKash number to `01817889286` and Rocket account number to `018178892865`. It opens registration. Migration 007 makes manual payment review and QR delivery the confirmation step. Nagad remains disabled until the organizer confirms its number. These numbers can later be changed in `/admin` → **Event settings**.
 
 ## Payment and refund flow
 
@@ -49,7 +49,7 @@ If a development page shows a missing file under `.next/server/vendor-chunks`, s
 
 ## 3. Admin workflow
 
-Go to `/admin` and sign in with the allowlisted Supabase Auth account. The dashboard shows registration, attendance, payment, and refund totals. The participant table supports name search, institution, programming level and attendance filters, detail review, payment verification, completion, refund recording, and admin-only CSV export. Event settings control opening/closing times, capacity, approval, single-day attendance, IIT student ID, bKash/Rocket/Nagad numbers, event time, and venue. Blank opening/closing times mean no time limit; blank capacity means unlimited. Times are entered and displayed in Bangladesh time; Supabase stores timestamps in UTC.
+Go to `/admin` and sign in with the allowlisted Supabase Auth account. The dashboard shows registration, attendance, payment, and refund totals. The Payment review queue lets an admin match a submitted transaction ID and then send the QR ticket, or cancel with a selected reason and polite email. Separate views track sent, rejected, and failed deliveries. The participant table supports name search, institution, programming level and attendance filters, detail review, completion, refund recording, and admin-only CSV export. Event settings control opening/closing times, capacity, approval, single-day attendance, IIT student ID, bKash/Rocket/Nagad numbers, event time, and venue. Blank opening/closing times mean no time limit; blank capacity means unlimited. Times are entered and displayed in Bangladesh time; Supabase stores timestamps in UTC.
 
 Pending registrations do **not** count as confirmed. Payment must be verified before approval. Changing a participant to rejected frees one place if capacity is set. A previously rejected email remains reserved to prevent duplicate registration.
 
@@ -59,7 +59,7 @@ Pending registrations do **not** count as confirmed. Payment must be verified be
 2. Import it into Vercel as a Next.js project.
 3. Add the Supabase, Gmail API, and check-in signing variables from `.env.example` in Vercel **Project Settings → Environment Variables**.
 4. Set Supabase Auth's Site URL to the production domain.
-5. Apply `004_payment_methods.sql`, `005_llm_readiness_questions.sql`, and `006_email_and_checkin.sql` after the earlier migrations, then deploy. The build runs `next build`. Verify the payment destination numbers and test registration flow before accepting real payments.
+5. For a fresh project, apply migrations 001 through 007 in order, then deploy. For an already live site, deploy this version before applying migration 007 so the older registration handler cannot issue QR tickets during the rollout. The build runs `next build`. Verify the payment destination numbers and test registration flow before accepting real payments.
 
 ## Security design
 

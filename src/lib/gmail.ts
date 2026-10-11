@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-type Message = { to: string; subject: string; html: string; text: string; qrPngBase64: string; reference: string };
+type Message = { to: string; subject: string; html: string; text: string; qrPngBase64?: string; reference: string };
 
 const emailAddress = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
 const base64Lines = (value: string) => value.match(/.{1,76}/g)?.join("\r\n") || "";
@@ -9,19 +9,26 @@ const encodeBody = (value: string) => base64Lines(Buffer.from(value, "utf8").toS
 export function buildGmailMessage(message: Message, sender: string) {
   if (!emailAddress.test(sender) || !emailAddress.test(message.to) || !/^AGNT-[A-F0-9]{12}$/.test(message.reference))
     throw new Error("Invalid email address or registration reference");
-  const mixed = `mixed-${randomBytes(12).toString("hex")}`;
-  const related = `related-${randomBytes(12).toString("hex")}`;
   const alternative = `alternative-${randomBytes(12).toString("hex")}`;
-  const filename = `workshop-${message.reference}.png`;
-  const subject = `=?UTF-8?B?${Buffer.from(message.subject, "utf8").toString("base64")}?=`;
-  const lines = [
-    `From: Workshop <${sender}>`, `To: ${message.to}`, `Subject: ${subject}`,
-    "MIME-Version: 1.0", `Content-Type: multipart/mixed; boundary="${mixed}"`, "",
-    `--${mixed}`, `Content-Type: multipart/related; boundary="${related}"`, "",
-    `--${related}`, `Content-Type: multipart/alternative; boundary="${alternative}"`, "",
+  const alternativeParts = [
     `--${alternative}`, "Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64", "", encodeBody(message.text),
     `--${alternative}`, "Content-Type: text/html; charset=UTF-8", "Content-Transfer-Encoding: base64", "", encodeBody(message.html),
-    `--${alternative}--`,
+    `--${alternative}--`
+  ];
+  const commonHeaders = [`From: Workshop <${sender}>`, `To: ${message.to}`,
+    `Subject: =?UTF-8?B?${Buffer.from(message.subject, "utf8").toString("base64")}?=`, "MIME-Version: 1.0"];
+  if (!message.qrPngBase64) {
+    return Buffer.from([...commonHeaders, `Content-Type: multipart/alternative; boundary="${alternative}"`, "",
+      ...alternativeParts, ""].join("\r\n"), "utf8").toString("base64url");
+  }
+  const mixed = `mixed-${randomBytes(12).toString("hex")}`;
+  const related = `related-${randomBytes(12).toString("hex")}`;
+  const filename = `workshop-${message.reference}.png`;
+  const lines = [
+    ...commonHeaders, `Content-Type: multipart/mixed; boundary="${mixed}"`, "",
+    `--${mixed}`, `Content-Type: multipart/related; boundary="${related}"`, "",
+    `--${related}`, `Content-Type: multipart/alternative; boundary="${alternative}"`, "",
+    ...alternativeParts,
     `--${related}`, `Content-Type: image/png; name="${filename}"`, "Content-Transfer-Encoding: base64",
     "Content-ID: <workshop-checkin-qr>", `Content-Disposition: inline; filename="${filename}"`, "", base64Lines(message.qrPngBase64),
     `--${related}--`,

@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     wrong_day: ["Check-in is only open on the selected workshop day in Bangladesh time.", 409],
     not_found: ["Registration not found.", 404],
     rejected_registration: ["This registration was rejected and cannot be checked in.", 409],
+    qr_not_sent: ["This registration has not been approved and sent a QR ticket.", 409],
     wrong_attendance: ["This participant is not registered for this day.", 409],
     unauthorized: ["Admin access required.", 401]
   };

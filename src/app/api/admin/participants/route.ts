@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
   if (level && ["Beginner", "Intermediate", "Advanced"].includes(level)) query = query.eq("programming_level", level);
   const attendance = params.get("attendance");
   if (attendance && ["Both Days", "Day 1 Only", "Day 2 Only"].includes(attendance)) query = query.eq("attendance", attendance);
+  const qrStatus = params.get("qr_status");
+  if (qrStatus && ["pending_review", "sending", "sent", "failed", "rejected"].includes(qrStatus)) query = query.eq("qr_status", qrStatus);
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ error: "Unable to load participants" }, { status: 500 });
   return NextResponse.json({ participants: data, count, page, pageSize });
@@ -24,7 +26,7 @@ export async function PATCH(request: NextRequest) {
   if (!await adminUser()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   let body: { id?: string; action?: string; refund_reference?: string };
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
-  const actions = ["verify_payment", "approve", "reject", "complete", "mark_refunded"];
+  const actions = ["complete", "mark_refunded"];
   if (!body.id || !/^[0-9a-f-]{36}$/i.test(body.id) || !actions.includes(body.action || ""))
     return NextResponse.json({ error: "Invalid update" }, { status: 400 });
   if (body.action === "mark_refunded" && (!body.refund_reference?.trim() || body.refund_reference.length > 120))
