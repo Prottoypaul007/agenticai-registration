@@ -8,7 +8,7 @@ For email tickets and workshop check-in, see [CHECKIN_SETUP.md](CHECKIN_SETUP.md
 
 1. Create a Supabase project. In **Project Settings → API**, copy the **Project URL**, **anon/publishable key**, and **service_role/secret key**.
 2. Copy `.env.example` to `.env.local`. Replace `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` with your own values. The service role key must stay server side. Never prefix it with `NEXT_PUBLIC_` or commit `.env.local`.
-3. Open the Supabase **SQL Editor** and run the migrations in order: `001_initial.sql`, `002_remove_spam_protection.sql` (only if the older version of 001 was already installed), `003_payment_and_refunds.sql`, `004_payment_methods.sql`, `005_llm_readiness_questions.sql`, `006_email_and_checkin.sql`, `007_manual_review_and_qr_delivery.sql`, `008_batch14_google_sheet.sql`, `009_batch14_beyond_website_capacity.sql`, and `010_batch14_import_payment_conflicts.sql`. For a live project already at 009, run only 010. Migration 009 lets Batch 14 imports continue after the website reaches its closing threshold. Migration 010 imports rows with duplicate transaction IDs for admin review while blocking QR delivery until the sheet is corrected and synced.
+3. Open the Supabase **SQL Editor** and run the migrations in order: `001_initial.sql`, `002_remove_spam_protection.sql` (only if the older version of 001 was already installed), `003_payment_and_refunds.sql`, `004_payment_methods.sql`, `005_llm_readiness_questions.sql`, `006_email_and_checkin.sql`, `007_manual_review_and_qr_delivery.sql`, `008_batch14_google_sheet.sql`, `009_batch14_beyond_website_capacity.sql`, `010_batch14_import_payment_conflicts.sql`, and `011_cross_group_payment_conflicts.sql`. For a live project already at 009, run 010 and 011 in order. Migration 009 lets Batch 14 imports continue after the website reaches its closing threshold. Migration 010 imports rows with duplicate transaction IDs for admin review while blocking QR delivery until the sheet is corrected and synced.
 4. In **Authentication → Users**, create an admin user with an email and password. Copy its UUID. Add it to the allowlist in SQL Editor:
 
    ```sql
@@ -69,7 +69,7 @@ The Google Sheets connection also syncs new Form responses before each outside r
 2. Import it into Vercel as a Next.js project.
 3. Add the Supabase, Gmail API, and check-in signing variables from `.env.example` in Vercel **Project Settings → Environment Variables**.
 4. Set Supabase Auth's Site URL to the production domain.
-5. For a fresh project, apply migrations 001 through 010 in order, then deploy. For the current live site on 009, apply migration 010, add the Google Sheets environment variables to Vercel Production, redeploy, verify sheet sync, and reopen outside registration from the admin dashboard. The build runs `next build`.
+5. For a fresh project, apply migrations 001 through 011 in order, then deploy. For the current live site on 009, apply migrations 010 and 011 in order, then verify a Batch 14 sheet sync in the admin dashboard. The build runs `next build`.
 
 ## Security design
 

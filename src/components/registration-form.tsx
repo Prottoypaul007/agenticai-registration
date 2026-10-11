@@ -44,7 +44,7 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
   const paymentNumbers = { bkash: settings.bkash_merchant_number, rocket: settings.rocket_number, nagad: settings.nagad_number };
   const paymentNumber = paymentNumbers[method];
   const methodLabel = method === "bkash" ? "bKash" : method === "rocket" ? "Rocket" : "Nagad";
-  const error = (name: keyof RegistrationInput) => (attemptedSteps[step] || (step < 2 && touchedFields[name])) && errors[name]?.message && <p role="alert" className={`mt-1.5 text-xs ${step === 2 ? "text-amber-200" : "text-rose-300"}`}>{String(errors[name]?.message)}</p>;
+  const error = (name: keyof RegistrationInput) => (errors[name]?.type === "server" || attemptedSteps[step] || (step < 2 && touchedFields[name])) && errors[name]?.message && <p role="alert" className={`mt-1.5 text-xs ${errors[name]?.type === "server" || step < 2 ? "text-rose-300" : "text-amber-200"}`}>{String(errors[name]?.message)}</p>;
   const label = (name: keyof RegistrationInput, text: string, required: boolean, children: React.ReactNode) => <label className="block"><span className="mb-2 block text-sm font-medium text-slate-200">{text} {required && <span className="text-cyan-400">*</span>}</span>{children}{error(name)}</label>;
   const yesNo = (name: keyof RegistrationInput, title: string) => label(name, title, true, <Select defaultValue="" {...register(name)}><option value="" disabled>Select an answer</option><option>Yes</option><option>No</option></Select>);
   const copyPaymentNumber = async () => {
@@ -73,7 +73,13 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
       const response = await fetch("/api/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...values, attendance: settings.allow_single_day ? values.attendance : "Both Days" }) });
       const result = await response.json();
       if (!response.ok) {
-        setServerError(result.error || "Submission failed. Please try again.");
+        setServerError(result.error || "Sorry, we could not submit your registration. Please try again.");
+        if (typeof result.field === "string" && stepFields.flat().includes(result.field as keyof RegistrationInput)) {
+          const field = result.field as keyof RegistrationInput;
+          setError(field, { type: "server", message: result.error });
+          const fieldStep = stepFields.findIndex(fields => fields.includes(field));
+          if (fieldStep !== step) setStep(fieldStep);
+        }
         if (result.code === "batch14_first") setRegistrationPaused(true);
         return;
       }

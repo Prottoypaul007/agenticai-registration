@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
   let query = serviceClient().from("batch14_registrations").select("*", { count: "exact" })
     .order("created_at", { ascending: false }).range(page * 25, page * 25 + 24);
   if (status && ["pending_review", "sending", "sent", "failed"].includes(status)) query = query.eq("qr_status", status);
+  if (status === "payment_conflict") query = query.eq("import_issue", "duplicate_transaction");
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ error: "Unable to load Batch 14 registrations. Apply migration 008." }, { status: 500 });
   return NextResponse.json({ registrations: data, count, page,

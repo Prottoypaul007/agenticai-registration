@@ -48,6 +48,14 @@ describe("public registration route", () => {
     rpc.mockResolvedValue({ data: { error: "duplicate_transaction" }, error: null });
     const response = await POST(new NextRequest("http://localhost/api/register", { method: "POST", body: JSON.stringify(payload) }));
     expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: "duplicate_transaction", field: "payment_transaction_id",
+      error: expect.stringContaining("already used") });
+  });
+  it("points to a bank holder name mismatch", async () => {
+    rpc.mockResolvedValue({ data: { error: "bank_name_mismatch" }, error: null });
+    const response = await POST(new NextRequest("http://localhost/api/register", { method: "POST", body: JSON.stringify(payload) }));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: "bank_name_mismatch", field: "bank_account_holder_name" });
   });
   it("stores a registration for review without issuing a QR or sending email", async () => {
     rpc.mockResolvedValue({ data: { reference: "AGNT-ABCDEF123456", status: "pending" }, error: null });
