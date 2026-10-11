@@ -14,5 +14,6 @@ export async function syncBatch14Registrations(adminId?: string) {
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
   return { read: rows.length, added: Number(data.added || 0), skipped: Number(data.skipped || 0),
-    conflicts: Number(data.conflicts || 0), resolved: Number(data.resolved || 0) };
+    conflicts: Number(data.conflicts || 0), resolved: Number(data.resolved || 0),
+    deleted: Number(data.deleted || 0), moved: Number(data.moved || 0) };
 }

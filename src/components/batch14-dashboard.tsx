@@ -51,7 +51,8 @@ export function Batch14Dashboard({ onUpdated }: { onUpdated: () => void }) {
         const data = await response.json();
         if (!active) return;
         if (response.ok) {
-          if (data.added || data.conflicts || data.resolved) setMessage(`Sheet updated: ${data.added || 0} new, ${data.conflicts || 0} payment conflict(s), ${data.resolved || 0} resolved.`);
+          if (data.added || data.deleted || data.moved || data.conflicts || data.resolved)
+            setMessage(`Sheet updated: ${data.added || 0} new, ${data.deleted || 0} removed, ${data.moved || 0} row number(s) updated, ${data.conflicts || 0} payment conflict(s), ${data.resolved || 0} resolved.`);
           await loadRef.current();
           onUpdatedRef.current();
         } else setMessage(data.error || "Unable to sync the Google Sheet.");
@@ -71,7 +72,7 @@ export function Batch14Dashboard({ onUpdated }: { onUpdated: () => void }) {
         body: JSON.stringify({ action, id: selected?.id }) });
       const data = await response.json();
       if (response.ok && action === "sync") {
-        const details = [`Read ${data.read} responses. Imported ${data.added} new Batch 14 registrations; ${data.skipped} already present.`];
+        const details = [`Read ${data.read} responses. Imported ${data.added} new Batch 14 registrations; removed ${data.deleted || 0} no longer in the sheet; updated ${data.moved || 0} row number(s). ${data.skipped} already present.`];
         if (data.conflicts) details.push(`${data.conflicts} transaction ID conflict(s) need correction in the sheet.`);
         if (data.resolved) details.push(`${data.resolved} conflict(s) resolved.`);
         setMessage(details.join(" "));
@@ -83,7 +84,7 @@ export function Batch14Dashboard({ onUpdated }: { onUpdated: () => void }) {
   }
   return <section>
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-2xl font-semibold">Batch 14 registrations</h2>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">The private Google Form sheet syncs when this tab opens and every minute while it is visible. You can also sync now. Responses continue importing after website registration closes at 45. Check each payment transaction before sending its QR ticket.</p></div>
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">The private Google Form sheet syncs when this tab opens and every minute while it is visible. You can also sync now. Responses removed from the sheet are removed here, including sent QR records; their QR codes stop working. Check each payment transaction before sending its QR ticket.</p></div>
       <Button disabled={busy || !configured} onClick={() => void act("sync")}>Sync Google Sheet</Button></div>
     {!configured && <p className="mb-5 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">Google Sheets is not connected yet. Add the service account email and private key to the server environment, then share the response sheet with that email.</p>}
     <div className="mb-5 flex flex-wrap gap-2">{filters.map(([key, label]) => <button key={key} onClick={() => { setFilter(key); setPage(0); setSelected(null); }}
