@@ -47,7 +47,7 @@ export function Batch14Dashboard({ onUpdated }: { onUpdated: () => void }) {
         const data = await response.json();
         if (!active) return;
         if (response.ok) {
-          if (data.added || data.conflicts || data.resolved) setMessage(`Sheet updated: ${data.added} new, ${data.conflicts} payment conflict(s), ${data.resolved} resolved.`);
+          if (data.added || data.conflicts || data.resolved) setMessage(`Sheet updated: ${data.added || 0} new, ${data.conflicts || 0} payment conflict(s), ${data.resolved || 0} resolved.`);
           await loadRef.current();
           onUpdatedRef.current();
         } else setMessage(data.error || "Unable to sync the Google Sheet.");
