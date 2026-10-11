@@ -1,22 +1,41 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { adminUser, serviceClient } from "@/lib/supabase";
+import { syncBatch14Registrations } from "@/lib/batch14-sync";
+import { buildRegistrationCsv, type ExportGroup } from "@/lib/registration-export";
 
-const columns = ["reference","full_name","email","phone","institution","department","academic_year","student_id","traditional_development","ai_tools_basics","built_software_project","programming_languages","programming_level","python_familiarity","api_experience","ai_familiarity","agent_experience","paid_llm_subscription","paid_llm_models","paid_llm_other_model","attendance","bringing_laptop","development_environment","local_model_laptop","learning_expectations","payment_amount_bdt","payment_method","payment_destination","payment_transaction_id","payment_status","bank_name","bank_account_holder_name","bank_account_number","bank_branch","completion_status","refund_status","refund_reference","registration_status","qr_status","qr_reviewed_at","qr_reviewed_by","qr_sent_at","qr_sent_by","rejection_reason_code","rejection_reason_detail","rejected_at","rejected_by","rejection_email_status","rejection_email_sent_at","confirmation_email_status","confirmation_email_sent_at","day1_checked_in_at","day2_checked_in_at","created_at"] as const;
-function csvCell(value: unknown) {
-  const raw = Array.isArray(value) ? value.join("; ") : String(value ?? "");
-  const safe = /^[\s]*[=+@\-]/.test(raw) || /^[\t\r]/.test(raw) ? `'${raw}` : raw;
-  return `"${safe.replace(/"/g, '""')}"`;
-}
-export async function GET() {
-  if (!await adminUser()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+async function allRows(table: "registrations" | "batch14_registrations") {
   const client = serviceClient();
   const rows: Record<string, unknown>[] = [];
   for (let offset = 0; ; offset += 1000) {
-    const { data, error } = await client.from("registrations").select("*").order("created_at", { ascending: false }).range(offset, offset + 999);
-    if (error) return NextResponse.json({ error: "Unable to export participants" }, { status: 500 });
+    const { data, error } = await client.from(table).select("*")
+      .order("created_at", { ascending: false }).range(offset, offset + 999);
+    if (error) throw new Error(`Unable to read ${table}`);
     rows.push(...(data || []));
-    if (!data || data.length < 1000) break;
+    if (!data || data.length < 1000) return rows;
   }
-  const csv = "\uFEFF" + [columns.join(","), ...rows.map(row => columns.map(key => csvCell(row[key])).join(","))].join("\r\n");
-  return new NextResponse(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="agentic-workshop-registrations.csv"', "Cache-Control": "no-store" } });
+}
+
+export async function GET(request: NextRequest) {
+  const admin = await adminUser();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const group = (request.nextUrl.searchParams.get("group") || "all") as ExportGroup;
+  if (!["all", "outsiders", "batch14"].includes(group))
+    return NextResponse.json({ error: "Choose a valid registration group." }, { status: 400 });
+
+  try {
+    if (group !== "outsiders") await syncBatch14Registrations(admin.id);
+    const [outsiders, batch14] = await Promise.all([
+      group === "batch14" ? Promise.resolve([]) : allRows("registrations"),
+      group === "outsiders" ? Promise.resolve([]) : allRows("batch14_registrations")
+    ]);
+    const csv = buildRegistrationCsv(outsiders, batch14);
+    return new NextResponse(csv, { headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="agentic-workshop-${group}-registrations.csv"`,
+      "Cache-Control": "no-store"
+    } });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Unable to export registrations.";
+    return NextResponse.json({ error: detail }, { status: 503 });
+  }
 }
