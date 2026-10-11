@@ -25,7 +25,12 @@ export async function POST(request: NextRequest) {
     if (syncError instanceof Error && syncError.message.includes("registration_full"))
       return NextResponse.json({ error: "All workshop places are currently reserved or registered." }, { status: 403 });
     console.error("Batch 14 sheet sync failed before outside registration", syncError);
-    return NextResponse.json({ error: "Registration is temporarily unavailable while Batch 14 places are checked. Please try again later." }, { status: 503 });
+    const reason = syncError instanceof Error ? syncError.message : "";
+    const code = reason.startsWith("Configure the Google Sheets") ? "batch14_sheet_not_configured"
+      : reason.includes("authentication failed") ? "batch14_sheet_auth_failed"
+      : reason.includes("private Google Sheet") || reason.includes("response tab was not found") ? "batch14_sheet_access_failed"
+      : "batch14_sheet_sync_failed";
+    return NextResponse.json({ code, error: "Registration is temporarily unavailable while Batch 14 places are checked. Please try again later." }, { status: 503 });
   }
   const { data, error } = await serviceClient().rpc("submit_registration", {
     p_payload: parsed.data
