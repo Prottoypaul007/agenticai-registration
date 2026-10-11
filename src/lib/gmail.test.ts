@@ -31,6 +31,11 @@ describe("Gmail registration delivery", () => {
     expect(mime).not.toContain("workshop-checkin-qr");
     expect(mime).not.toContain("Content-Disposition: attachment");
   });
+  it("builds a Batch 14 QR message with its own reference", () => {
+    const batch = { ...message, reference: "B14-ABCDEF123456" };
+    const mime = Buffer.from(buildGmailMessage(batch, "no-reply@example.com"), "base64url").toString("utf8");
+    expect(mime).toContain('workshop-B14-ABCDEF123456.png');
+  });
   it("refreshes OAuth and sends the encoded message through Gmail API", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: "access-token" }) })
       .mockResolvedValueOnce({ ok: true });

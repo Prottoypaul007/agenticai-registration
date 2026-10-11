@@ -20,7 +20,7 @@ export function createTicket(details: TicketDetails): CheckinTicket {
 export function verifyTicket(value: unknown): value is CheckinTicket {
   if (!value || typeof value !== "object") return false;
   const ticket = value as Partial<CheckinTicket>;
-  if (ticket.v !== 1 || !ticket.reference?.match(/^AGNT-[A-F0-9]{12}$/) ||
+  if (ticket.v !== 1 || !ticket.reference?.match(/^(?:AGNT|B14)-[A-F0-9]{12}$/) ||
       typeof ticket.name !== "string" || !ticket.name || ticket.name.length > 200 ||
       typeof ticket.institution !== "string" || ticket.institution.length > 200 ||
       !["Both Days", "Day 1 Only", "Day 2 Only"].includes(ticket.attendance || "") ||

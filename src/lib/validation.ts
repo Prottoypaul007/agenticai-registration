@@ -60,6 +60,7 @@ export const settingsSchema = z.object({
   registration_opens_at: z.iso.datetime({ offset: true }).nullable(),
   registration_closes_at: z.iso.datetime({ offset: true }).nullable(),
   capacity: z.number().int().positive().nullable(),
+  outsider_registration_enabled: z.boolean(),
   approval_required: z.boolean(),
   allow_single_day: z.boolean(),
   event_time: z.string().trim().max(120),
@@ -73,7 +74,7 @@ export const settingsSchema = z.object({
 });
 export type EventSettings = z.infer<typeof settingsSchema>;
 export const defaultSettings: EventSettings = {
-  registration_opens_at: null, registration_closes_at: null, capacity: null,
+  registration_opens_at: null, registration_closes_at: null, capacity: null, outsider_registration_enabled: false,
   approval_required: true, allow_single_day: true, event_time: "To Be Announced",
   venue: "Institute of Information Technology (IIT)", require_iit_student_id: false,
   bkash_merchant_number: null, rocket_number: null, nagad_number: null

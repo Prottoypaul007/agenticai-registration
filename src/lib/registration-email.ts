@@ -48,6 +48,35 @@ export async function sendRegistrationEmail(reference: string): Promise<boolean>
   }
 }
 
+export async function sendBatch14Email(reference: string): Promise<boolean> {
+  const client = serviceClient();
+  const { data: participant, error } = await client.from("batch14_registrations")
+    .select("reference,full_name,email,institution,attendance,qr_status,qr_reviewed_by")
+    .eq("reference", reference).single();
+  if (error || !participant || participant.qr_status !== "sending" || !participant.qr_reviewed_by)
+    throw new Error("Batch 14 QR delivery requires an admin action");
+  try {
+    const ticket = createTicket({ reference: participant.reference, name: participant.full_name,
+      institution: participant.institution, attendance: participant.attendance });
+    const png = (await QRCode.toDataURL(JSON.stringify(ticket), { width: 420, margin: 2, errorCorrectionLevel: "M" })).split(",")[1];
+    await sendGmailMessage({ to: participant.email, reference,
+      subject: `${EVENT_TITLE} QR ticket ${reference}`,
+      html: `<div style="max-width:580px;margin:auto;font-family:Arial,sans-serif;color:#13233a;line-height:1.6"><h1>${escapeHtml(EVENT_TITLE)}</h1><p>Hello ${escapeHtml(participant.full_name)}, your Batch 14 workshop place is confirmed.</p><p><strong>Reference:</strong> ${escapeHtml(reference)}<br><strong>Dates:</strong> ${escapeHtml(EVENT_DATES)}<br><strong>Attendance:</strong> ${escapeHtml(participant.attendance)}</p><p>Bring this QR code on your workshop day. An admin will scan it to record your attendance. Keep this email private.</p><img src="cid:workshop-checkin-qr" width="280" height="280" alt="Workshop check-in QR code"/><p style="font-size:12px;color:#64748b">If the image is hidden, open the attached QR image. This mailbox is not monitored.</p></div>`,
+      text: `Hello ${participant.full_name}, your Batch 14 place at ${EVENT_TITLE} is confirmed. Reference: ${reference}. Dates: ${EVENT_DATES}. Attendance: ${participant.attendance}. Bring the attached QR code for check-in. This mailbox is not monitored.`,
+      qrPngBase64: png });
+    const { error: updateError } = await client.from("batch14_registrations")
+      .update({ qr_status: "sent", qr_sent_at: new Date().toISOString(), qr_sent_by: participant.qr_reviewed_by })
+      .eq("reference", reference).eq("qr_status", "sending");
+    if (updateError) throw updateError;
+    return true;
+  } catch (sendError) {
+    console.error("Batch 14 QR email failed", reference, sendError);
+    await client.from("batch14_registrations").update({ qr_status: "failed" })
+      .eq("reference", reference).eq("qr_status", "sending");
+    return false;
+  }
+}
+
 export async function sendRejectionEmail(reference: string): Promise<boolean> {
   const client = serviceClient();
   const { data: participant, error } = await client.from("registrations")

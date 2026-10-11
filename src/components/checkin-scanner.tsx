@@ -9,7 +9,7 @@ function workshopDay() {
   const date = `${parts.find(p => p.type === "year")?.value}-${parts.find(p => p.type === "month")?.value}-${parts.find(p => p.type === "day")?.value}`;
   return date === "2026-10-17" ? 1 : date === "2026-10-18" ? 2 : 0;
 }
-type Result = { status: string; name: string; reference: string; attendance: string; checked_in_at: string };
+type Result = { status: string; source: "outsider" | "batch14"; name: string; reference: string; attendance: string; checked_in_at: string };
 export function CheckinScanner() {
   const [day, setDay] = useState(0);
   const [scanning, setScanning] = useState(false);
@@ -63,7 +63,7 @@ export function CheckinScanner() {
     {message && <p role="alert" className="mt-6 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200">{message}</p>}
     {result && <div role="status" className={`mt-6 rounded-xl border p-5 ${result.status === "checked_in" ? "border-emerald-400/40 bg-emerald-400/10" : "border-amber-400/40 bg-amber-400/10"}`}>
       <p className="text-lg font-semibold">{result.status === "checked_in" ? "Checked in successfully" : "Already checked in today"}</p>
-      <p className="mt-2">{result.name} · {result.reference}</p><p className="text-sm text-slate-300">{result.attendance} · {new Intl.DateTimeFormat("en-BD", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "short" }).format(new Date(result.checked_in_at))}</p>
+      <p className="mt-2">{result.name} · {result.reference} · {result.source === "batch14" ? "Batch 14" : "Outside"}</p><p className="text-sm text-slate-300">{result.attendance} · {new Intl.DateTimeFormat("en-BD", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "short" }).format(new Date(result.checked_in_at))}</p>
     </div>}
   </section>;
 }

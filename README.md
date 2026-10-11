@@ -8,7 +8,7 @@ For email tickets and workshop check-in, see [CHECKIN_SETUP.md](CHECKIN_SETUP.md
 
 1. Create a Supabase project. In **Project Settings → API**, copy the **Project URL**, **anon/publishable key**, and **service_role/secret key**.
 2. Copy `.env.example` to `.env.local`. Replace `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` with your own values. The service role key must stay server side. Never prefix it with `NEXT_PUBLIC_` or commit `.env.local`.
-3. Open the Supabase **SQL Editor** and run the migrations in order: `001_initial.sql`, `002_remove_spam_protection.sql` (only if the older version of 001 was already installed), `003_payment_and_refunds.sql`, `004_payment_methods.sql`, then `005_llm_readiness_questions.sql`, `006_email_and_checkin.sql`, and `007_manual_review_and_qr_delivery.sql`. If you already ran 001–004, run `005_llm_readiness_questions.sql`, `006_email_and_checkin.sql`, and `007_manual_review_and_qr_delivery.sql` now. The migrations preserve existing registrations and payment records; older registrations have blank answers for the new questions.
+3. Open the Supabase **SQL Editor** and run the migrations in order: `001_initial.sql`, `002_remove_spam_protection.sql` (only if the older version of 001 was already installed), `003_payment_and_refunds.sql`, `004_payment_methods.sql`, `005_llm_readiness_questions.sql`, `006_email_and_checkin.sql`, `007_manual_review_and_qr_delivery.sql`, and `008_batch14_google_sheet.sql`. For a live project already at 007, run only 008 before deploying this version. Migration 008 closes outside registration until Batch 14 is synced and an admin opens the remaining seats in Event settings.
 4. In **Authentication → Users**, create an admin user with an email and password. Copy its UUID. Add it to the allowlist in SQL Editor:
 
    ```sql
@@ -17,7 +17,7 @@ For email tickets and workshop check-in, see [CHECKIN_SETUP.md](CHECKIN_SETUP.md
 
    Public signup is not implemented. Authentication alone does not grant admin access; the UUID must be inserted by a trusted project owner.
 5. In **Authentication → URL Configuration**, set the Site URL to `http://localhost:3000` for local use or your production domain after deployment. Password sign-in uses Supabase Auth cookies.
-6. Migration 004 sets the organizer-provided bKash number to `01817889286` and Rocket account number to `018178892865`. It opens registration. Migration 007 makes manual payment review and QR delivery the confirmation step. Nagad remains disabled until the organizer confirms its number. These numbers can later be changed in `/admin` → **Event settings**.
+6. Migration 004 sets the organizer-provided bKash number to `01817889286` and Rocket account number to `018178892865`. Migration 007 makes manual payment review and QR delivery the confirmation step. Migration 008 reserves Batch 14 seats first. Nagad remains disabled until the organizer confirms its number. Payment numbers can be changed in `/admin` → **Event settings**.
 
 ## Payment and refund flow
 
@@ -53,13 +53,23 @@ Go to `/admin` and sign in with the allowlisted Supabase Auth account. The dashb
 
 Pending registrations do **not** count as confirmed. Payment must be verified before approval. Changing a participant to rejected frees one place if capacity is set. A previously rejected email remains reserved to prevent duplicate registration.
 
+## Batch 14 Google Form
+
+1. In the Google Cloud project, enable the [Google Sheets API](https://developers.google.com/workspace/sheets/api/quickstart/js). Create a service account and a JSON key. The site uses only the service account email and `private_key` from that JSON; keep the key server side.
+2. Share the private Form response spreadsheet with the service account email as a **Viewer**. No domain-wide delegation is needed. Set `GOOGLE_SHEETS_SPREADSHEET_ID` to the part of the spreadsheet URL after `/d/`, and `GOOGLE_SHEETS_GID` to the response tab's `gid`. Set `GOOGLE_SHEETS_SERVICE_ACCOUNT_EMAIL` and `GOOGLE_SHEETS_PRIVATE_KEY` from the JSON key in `.env.local` and Vercel's server environment. The private key may contain real newlines or literal `\n` escapes. Do not commit these values.
+3. Apply migration 008 before deploying this version. It pauses outside registration. In `/admin` → **Batch 14**, click **Sync Google Sheet**. The first sync imports existing Form responses and reserves their places. Repeated syncs add new responses and skip already imported rows. If the event capacity is too small, the whole import is rolled back; increase capacity before retrying.
+4. Check each Batch 14 transaction ID against the payment account, then click **Verify payment & send QR** for that student. QR delivery uses the existing Google Workspace sender. The Form has no attendance choice, so imported students are registered for both days. Other Form answers remain visible to admins in the Batch 14 details.
+5. After all Batch 14 responses are synced, turn on **Open remaining seats to outside registrations** in **Event settings** and save. Batch 14 and outside registrations share the same seat limit and public total count. The **Present** tab lists check-ins from both groups together for each workshop day.
+
+The Google Sheets connection reads the Form response tab only when an admin clicks Sync. It never edits the spreadsheet. New Form responses need another sync before they reserve a seat.
+
 ## 4. Vercel deployment
 
 1. Push this project to a private or public Git repository without `.env.local`.
 2. Import it into Vercel as a Next.js project.
 3. Add the Supabase, Gmail API, and check-in signing variables from `.env.example` in Vercel **Project Settings → Environment Variables**.
 4. Set Supabase Auth's Site URL to the production domain.
-5. For a fresh project, apply migrations 001 through 007 in order, then deploy. For an already live site, deploy this version before applying migration 007 so the older registration handler cannot issue QR tickets during the rollout. The build runs `next build`. Verify the payment destination numbers and test registration flow before accepting real payments.
+5. For a fresh project, apply migrations 001 through 008 in order, then deploy. For the current live site already on 007, apply migration 008 first; it immediately pauses outside registration. Then add the Google Sheets environment variables, deploy this version, sync Batch 14, and reopen outside registration from the admin dashboard. The build runs `next build`.
 
 ## Security design
 

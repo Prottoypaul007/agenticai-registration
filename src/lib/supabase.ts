@@ -36,12 +36,13 @@ export async function adminUser() {
 
 export async function getSettings(): Promise<EventSettings> {
   if (!configured()) return defaultSettings;
-  const { data, error } = await serviceClient().from("event_settings").select("registration_opens_at,registration_closes_at,capacity,approval_required,allow_single_day,event_time,venue,require_iit_student_id,bkash_merchant_number,rocket_number,nagad_number").eq("id", 1).single();
+  const { data, error } = await serviceClient().from("event_settings").select("registration_opens_at,registration_closes_at,capacity,outsider_registration_enabled,approval_required,allow_single_day,event_time,venue,require_iit_student_id,bkash_merchant_number,rocket_number,nagad_number").eq("id", 1).single();
   if (error || !data) throw new Error("Unable to load event settings");
   return data as EventSettings;
 }
 
 export function registrationState(s: EventSettings, now = new Date()) {
+  if (!s.outsider_registration_enabled) return "batch14_first";
   if (s.registration_opens_at && now < new Date(s.registration_opens_at)) return "upcoming";
   if (s.registration_closes_at && now > new Date(s.registration_closes_at)) return "closed";
   return "open";

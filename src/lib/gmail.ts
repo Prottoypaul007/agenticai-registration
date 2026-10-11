@@ -7,7 +7,7 @@ const base64Lines = (value: string) => value.match(/.{1,76}/g)?.join("\r\n") || 
 const encodeBody = (value: string) => base64Lines(Buffer.from(value, "utf8").toString("base64"));
 
 export function buildGmailMessage(message: Message, sender: string) {
-  if (!emailAddress.test(sender) || !emailAddress.test(message.to) || !/^AGNT-[A-F0-9]{12}$/.test(message.reference))
+  if (!emailAddress.test(sender) || !emailAddress.test(message.to) || !/^(?:AGNT|B14)-[A-F0-9]{12}$/.test(message.reference))
     throw new Error("Invalid email address or registration reference");
   const alternative = `alternative-${randomBytes(12).toString("hex")}`;
   const alternativeParts = [

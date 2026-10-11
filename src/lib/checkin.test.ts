@@ -19,4 +19,8 @@ describe("check-in ticket", () => {
     expect(parseTicket("not JSON")).toBeNull();
     expect(parseTicket("x".repeat(2001))).toBeNull();
   });
+  it("accepts a signed Batch 14 ticket through the same scanner format", () => {
+    const batch = { ...details, reference: "B14-ABCDEF123456" };
+    expect(parseTicket(JSON.stringify(createTicket(batch)))).toMatchObject(batch);
+  });
 });

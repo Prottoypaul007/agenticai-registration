@@ -40,7 +40,7 @@ describe("registration validation", () => {
   it("accepts Rocket payments and keeps an unconfirmed Nagad number out of settings", () => {
     expect(registrationSchema.safeParse({ ...valid, payment_method: "rocket" }).success).toBe(true);
     const settings = {
-      registration_opens_at: null, registration_closes_at: null, capacity: null,
+      registration_opens_at: null, registration_closes_at: null, capacity: null, outsider_registration_enabled: false,
       approval_required: false, allow_single_day: true, event_time: "To Be Announced",
       venue: "Institute of Information Technology (IIT)", require_iit_student_id: false,
       bkash_merchant_number: "01817889286", rocket_number: "018178892865", nagad_number: "0180000000000"
