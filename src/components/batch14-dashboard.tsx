@@ -47,7 +47,7 @@ export function Batch14Dashboard({ onUpdated }: { onUpdated: () => void }) {
   }
   return <section>
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-2xl font-semibold">Batch 14 registrations</h2>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">Sync the private Google Form response sheet before opening remaining seats to outsiders. Existing rows are skipped on repeat sync. Check the payment transaction yourself before sending each QR ticket.</p></div>
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">Sync the private Google Form response sheet at any time, including after website registration closes at 45 combined registrations. Existing rows are skipped on repeat sync. Check the payment transaction yourself before sending each QR ticket.</p></div>
       <Button disabled={busy || !configured} onClick={() => void act("sync")}>Sync Google Sheet</Button></div>
     {!configured && <p className="mb-5 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">Google Sheets is not connected yet. Add the service account email and private key to the server environment, then share the response sheet with that email.</p>}
     <div className="mb-5 flex flex-wrap gap-2">{filters.map(([key, label]) => <button key={key} onClick={() => { setFilter(key); setPage(0); setSelected(null); }}

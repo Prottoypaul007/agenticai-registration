@@ -27,9 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(await syncBatch14Registrations(admin.id));
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
-      return NextResponse.json({ error: message.includes("registration_full") ?
-        "Capacity is full. Increase capacity or resolve existing registrations before syncing Batch 14." :
-        message.includes("changed identity") ? "A Google Sheet row changed identity after import. Restore the original response row order." :
+      return NextResponse.json({ error: message.includes("changed identity") ? "A Google Sheet row changed identity after import. Restore the original response row order." :
         message.includes("duplicate transaction") ? "The sheet contains a transaction ID already used by another registration. Correct it and sync again." :
         message || "Unable to read the Google Sheet." }, { status: 409 });
     }
