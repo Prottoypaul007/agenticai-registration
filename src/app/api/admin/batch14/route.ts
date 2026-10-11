@@ -12,7 +12,9 @@ export async function GET(request: NextRequest) {
   if (status && ["pending_review", "sending", "sent", "failed"].includes(status)) query = query.eq("qr_status", status);
   if (status === "payment_conflict") query = query.eq("import_issue", "duplicate_transaction");
   const { data, count, error } = await query;
-  if (error) return NextResponse.json({ error: "Unable to load Batch 14 registrations. Apply migration 008." }, { status: 500 });
+  if (error) return NextResponse.json({ error: status === "payment_conflict" ?
+    "Payment conflict tracking is not available yet. Apply migration 010 in Supabase." :
+    "Unable to load Batch 14 registrations. Apply migration 008." }, { status: 500 });
   return NextResponse.json({ registrations: data, count, page,
     configured: Boolean(process.env.GOOGLE_SHEETS_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_SHEETS_PRIVATE_KEY &&
       process.env.GOOGLE_SHEETS_SPREADSHEET_ID && process.env.GOOGLE_SHEETS_GID) });
