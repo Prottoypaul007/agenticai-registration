@@ -71,6 +71,20 @@ The Google Sheets connection also syncs new Form responses before each outside r
 4. Set Supabase Auth's Site URL to the production domain.
 5. For a fresh project, apply migrations 001 through 013 in order, then deploy. For the current live site on 012, apply migration 013, then verify a Batch 14 sheet sync in the admin dashboard. The build runs `next build`.
 
+### GitHub Actions credentials and project settings errors
+
+The production workflow requires three repository secrets in **GitHub → Settings → Secrets and variables → Actions**:
+
+- `VERCEL_TOKEN`: a valid Vercel access token with access to the account/team that owns this project.
+- `VERCEL_ORG_ID`: the existing project's `orgId`.
+- `VERCEL_PROJECT_ID`: the existing project's `projectId`.
+
+To obtain matching IDs, log into Vercel locally and run `npx vercel@53 link` from this repository. Select the owning account/team and link to the **existing** registration project. Copy `orgId` and `projectId` from the generated `.vercel/project.json` into the GitHub secrets. Keep `.vercel` ignored by Git and never commit or paste the token into logs.
+
+If **Pull Vercel Environment Information** reports `Could not retrieve Project Settings`, confirm that both IDs belong to the same existing project and that the token is unexpired and has access to its owner. Vercel has also [reported failures with project-scoped tokens](https://github.com/vercel/vercel/issues/17506); if using one, replace it with a token scoped to the owning team/account that can retrieve project settings. Re-run the failed workflow after updating the secrets. Removing a local `.vercel` directory does not repair incorrect GitHub secrets: the Actions runner uses those secrets to select the project.
+
+See [Vercel's GitHub Actions guide](https://vercel.com/kb/guide/how-can-i-use-github-actions-with-vercel) for the credential setup and deployment sequence.
+
 ## Security design
 
 Only server routes use the Supabase service role. All application tables have RLS enabled, with no direct public policies. Public submissions are validated both in the browser and server, then passed to a database function that serializes duplicate, method-specific transaction ID, capacity, deadline, and attendance checks in one transaction. The normalized email and payment transaction ID indexes are final duplicate guards. Admin routes call Supabase Auth `getUser()` and check membership in `public.admins` on every request. CSV exports and registration records are never served to public users. The registration success link contains only a reference and signed status, not participant data.

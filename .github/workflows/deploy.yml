@@ -35,8 +35,28 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@53
 
+      - name: Validate Vercel secrets
+        shell: bash
+        run: |
+          missing=0
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing repository secret: $name. Configure it in Settings > Secrets and variables > Actions."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
       - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        shell: bash
+        run: |
+          if vercel pull --yes --environment=production --token="$VERCEL_TOKEN"; then
+            exit 0
+          else
+            status=$?
+            echo "::error::Vercel pull failed. Verify VERCEL_ORG_ID and VERCEL_PROJECT_ID against the existing project's .vercel/project.json, and ensure VERCEL_TOKEN is valid and can access the owning account/team. Project-scoped tokens can fail during project settings lookup; see the Vercel deployment section in README.md."
+            exit "$status"
+          fi
 
       - name: Build Project Artifacts
         run: vercel build --prod --token="$VERCEL_TOKEN"
