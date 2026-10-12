@@ -49,6 +49,14 @@ If a development page shows a missing file under `.next/server/vendor-chunks`, s
 
 ## 3. Admin workflow
 
+### Teacher access link (no password)
+
+Set `ADMIN_ACCESS_TOKEN` in `.env.local` and the deployment's server environment to a random 128-character lowercase hex value. Generate one with `node -e "console.log(require('node:crypto').randomBytes(64).toString('hex'))"`. Never prefix it with `NEXT_PUBLIC_` or commit the token.
+
+Share `https://YOUR_DOMAIN/admin/access/YOUR_TOKEN` privately with your teacher. Opening it starts a seven-day admin session and redirects to `/admin`. The link grants full dashboard access. **Sign out** clears the session; reopening the link signs in again. Changing or removing `ADMIN_ACCESS_TOKEN` revokes the link and its existing sessions after redeployment.
+
+The link uses an existing allowlisted admin UUID for database checks and audit records. Optionally set `ADMIN_ACCESS_USER_ID` to choose that account; otherwise it uses the first allowlisted UUID. Supabase must already be configured and an admin must exist. Use HTTPS in production.
+
 Go to `/admin` and sign in with the allowlisted Supabase Auth account. The dashboard shows registration, attendance, payment, and refund totals. The Payment review queue lets an admin match a submitted transaction ID and then send the QR ticket, or cancel with a selected reason and polite email. Separate views track sent, rejected, and failed deliveries. The participant table supports name search, institution, programming level and attendance filters, detail review, completion, and refund recording. The **Export** tab downloads a CSV for Excel or Google Sheets with both groups, outsiders only, or Batch 14 only; Batch 14 exports sync the Google Sheet first and include its original Form answers. Event settings control opening/closing times, capacity, approval, single-day attendance, IIT student ID, bKash/Rocket/Nagad numbers, event time, and venue. Blank opening/closing times mean no time limit; blank capacity means unlimited. Times are entered and displayed in Bangladesh time; Supabase stores timestamps in UTC.
 
 Pending registrations do **not** count as confirmed. Payment must be verified before approval. Changing a participant to rejected frees one place if capacity is set. A previously rejected email remains reserved to prevent duplicate registration.

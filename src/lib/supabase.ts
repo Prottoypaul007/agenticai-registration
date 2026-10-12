@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { configured } from "@/lib/utils";
 import { defaultSettings, type EventSettings } from "@/lib/validation";
+import { ADMIN_ACCESS_COOKIE, adminAccessSessionId } from "@/lib/admin-access";
 
 export function serviceClient() {
   if (!configured()) throw new Error("Supabase is not configured");
@@ -26,6 +27,13 @@ export async function authClient() {
 }
 
 export async function adminUser() {
+  if (!configured()) return null;
+  const cookieStore = await cookies();
+  const accessId = adminAccessSessionId(cookieStore.get(ADMIN_ACCESS_COOKIE)?.value);
+  if (accessId) {
+    const { data, error } = await serviceClient().from("admins").select("user_id").eq("user_id", accessId).maybeSingle();
+    if (!error && data) return { id: accessId, email: "Teacher (access link)" };
+  }
   const client = await authClient();
   if (!client) return null;
   const { data: { user } } = await client.auth.getUser();

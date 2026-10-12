@@ -92,6 +92,8 @@ export function AdminDashboard({ email }: { email: string }) {
     setBusy(false);
   }
   async function signOut() {
+    const response = await fetch("/api/admin/logout", { method: "POST" });
+    if (!response.ok) { setMessage("Unable to sign out. Please try again."); return; }
     const client = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
     await client.auth.signOut(); router.refresh();
   }
