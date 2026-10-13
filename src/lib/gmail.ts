@@ -2,6 +2,10 @@ import { randomBytes } from "node:crypto";
 
 type Message = { to: string; subject: string; html: string; text: string; qrPngBase64?: string; reference: string };
 
+export class GmailDeliveryUncertainError extends Error {
+  constructor() { super("Gmail delivery could not be confirmed. Check the sender mailbox before retrying."); }
+}
+
 const emailAddress = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
 const base64Lines = (value: string) => value.match(/.{1,76}/g)?.join("\r\n") || "";
 const encodeBody = (value: string) => base64Lines(Buffer.from(value, "utf8").toString("base64"));
@@ -54,10 +58,14 @@ export async function sendGmailMessage(message: Message) {
   if (!tokenResponse.ok) throw new Error(`Google OAuth token refresh failed (${tokenResponse.status})`);
   const token: { access_token?: string } = await tokenResponse.json();
   if (!token.access_token) throw new Error("Google OAuth did not return an access token");
-  const sendResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
-    method: "POST", signal: AbortSignal.timeout(10000),
-    headers: { Authorization: `Bearer ${token.access_token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ raw })
-  });
+  let sendResponse: Response;
+  try {
+    sendResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+      method: "POST", signal: AbortSignal.timeout(10000),
+      headers: { Authorization: `Bearer ${token.access_token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ raw })
+    });
+  } catch { throw new GmailDeliveryUncertainError(); }
+  if (sendResponse.status >= 500) throw new GmailDeliveryUncertainError();
   if (!sendResponse.ok) throw new Error(`Gmail API send failed (${sendResponse.status})`);
 }

@@ -3,6 +3,7 @@ import { adminUser, serviceClient } from "@/lib/supabase";
 import { syncBatch14Registrations } from "@/lib/batch14-sync";
 import { formContestTeams, type ContestParticipant, type ContestTeam } from "@/lib/contest-teams";
 import { sendContestTeamEmail } from "@/lib/contest-team-email";
+import { GmailDeliveryUncertainError } from "@/lib/gmail";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -106,8 +107,8 @@ export async function POST(request: NextRequest) {
         if (statusError || !updated) throw statusError || new Error("Delivery status was not saved");
         return NextResponse.json({ id: notification.id, email_status: "sent" });
       } catch (error) {
-        if (emailSent) {
-          console.error("Contest email delivered but status update failed", notification.id, error);
+        if (emailSent || error instanceof GmailDeliveryUncertainError) {
+          console.error("Contest email delivery needs manual review", notification.id, error);
           return NextResponse.json({ error: "Delivery may have succeeded. Review this sending status before any retry." }, { status: 503 });
         }
         const detail = error instanceof Error ? error.message : "Email delivery failed";

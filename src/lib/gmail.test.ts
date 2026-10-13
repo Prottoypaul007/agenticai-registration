@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildGmailMessage, sendGmailMessage } from "./gmail";
+import { buildGmailMessage, GmailDeliveryUncertainError, sendGmailMessage } from "./gmail";
 
 const message = { to: "participant@example.com", subject: "Workshop registration AGNT-ABCDEF123456",
   html: '<p>Ticket <img src="cid:workshop-checkin-qr"></p>', text: "Ticket attached",
@@ -51,5 +51,10 @@ describe("Gmail registration delivery", () => {
     globalThis.fetch = fetchMock;
     await expect(sendGmailMessage(message)).rejects.toThrow("Google OAuth token refresh failed");
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it("treats an ambiguous Gmail server failure as uncertain delivery", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: "access-token" }) })
+      .mockResolvedValueOnce({ ok: false, status: 503 });
+    await expect(sendGmailMessage(message)).rejects.toBeInstanceOf(GmailDeliveryUncertainError);
   });
 });
