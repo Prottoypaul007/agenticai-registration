@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formContestTeams, type ContestParticipant } from "./contest-teams";
+import { formContestTeams, techTeamNames, type ContestParticipant } from "./contest-teams";
 
 const participants = (count: number): ContestParticipant[] => Array.from({ length: count }, (_, i) => ({
   source: "outsider", reference: `AGNT-${String(i).padStart(12, "0")}`,
@@ -17,6 +17,12 @@ describe("contest team formation", () => {
     expect(teams.map(team => team.members.length).sort()).toEqual(expected);
     expect(new Set(teams.flatMap(team => team.members.map(member => member.reference))).size).toBe(count);
     expect(new Set(teams.map(team => team.name)).size).toBe(teams.length);
+    expect(teams.every(team => !/^Team \d+$/.test(team.name))).toBe(true);
     expect(input.map(person => person.reference)).toEqual(participants(count).map(person => person.reference));
+  });
+  it("provides distinct tech names for the largest supported roster", () => {
+    const names = techTeamNames(250);
+    expect(new Set(names).size).toBe(250);
+    expect(names.every(name => /^(Quantum|Neural|Binary|Pixel|Cyber|Circuit|Vector|Cipher|Cloud|Kernel|Logic|Syntax|Data|Photon|Fusion|Nano) /.test(name))).toBe(true);
   });
 });
