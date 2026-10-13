@@ -2,7 +2,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 export function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)); }
 
-export const EVENT_TITLE = "Agentic Systems in Action: From Inception to Production (and Beyond)";
+export const EVENT_TITLE = "Workshop on agentic software engineering";
 export const EVENT_DATES = "October 17–18, 2026";
 
 export function configured() {
