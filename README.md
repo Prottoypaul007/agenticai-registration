@@ -8,7 +8,7 @@ For email tickets and workshop check-in, see [CHECKIN_SETUP.md](CHECKIN_SETUP.md
 
 1. Create a Supabase project. In **Project Settings → API**, copy the **Project URL**, **anon/publishable key**, and **service_role/secret key**.
 2. Copy `.env.example` to `.env.local`. Replace `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` with your own values. The service role key must stay server side. Never prefix it with `NEXT_PUBLIC_` or commit `.env.local`.
-3. Open the Supabase **SQL Editor** and run the migrations in order: `001_initial.sql`, `002_remove_spam_protection.sql` (only if the older version of 001 was already installed), `003_payment_and_refunds.sql`, `004_payment_methods.sql`, `005_llm_readiness_questions.sql`, `006_email_and_checkin.sql`, `007_manual_review_and_qr_delivery.sql`, `008_batch14_google_sheet.sql`, `009_batch14_beyond_website_capacity.sql`, `010_batch14_import_payment_conflicts.sql`, `011_cross_group_payment_conflicts.sql`, `012_reconcile_batch14_sheet_deletions.sql`, `013_fix_batch14_reconciliation_safe_update.sql`, and `014_contest_teams.sql`. For the current live project at 013, run only 014. Migration 009 lets Batch 14 imports continue after the website reaches its closing threshold. Migration 010 imports rows with duplicate transaction IDs for admin review while blocking QR delivery until the sheet is corrected and synced.
+3. Open the Supabase **SQL Editor** and run the migrations in order: `001_initial.sql`, `002_remove_spam_protection.sql` (only if the older version of 001 was already installed), `003_payment_and_refunds.sql`, `004_payment_methods.sql`, `005_llm_readiness_questions.sql`, `006_email_and_checkin.sql`, `007_manual_review_and_qr_delivery.sql`, `008_batch14_google_sheet.sql`, `009_batch14_beyond_website_capacity.sql`, `010_batch14_import_payment_conflicts.sql`, `011_cross_group_payment_conflicts.sql`, `012_reconcile_batch14_sheet_deletions.sql`, `013_fix_batch14_reconciliation_safe_update.sql`, `014_contest_teams.sql`, and `015_admin_mailbox.sql`. For an existing project that already has 014, run only 015. Migration 009 lets Batch 14 imports continue after the website reaches its closing threshold. Migration 010 imports rows with duplicate transaction IDs for admin review while blocking QR delivery until the sheet is corrected and synced.
 4. In **Authentication → Users**, create an admin user with an email and password. Copy its UUID. Add it to the allowlist in SQL Editor:
 
    ```sql
@@ -57,6 +57,10 @@ Pending registrations do **not** count as confirmed. Payment must be verified be
 
 After applying migration 014, open **Contest Team Management** in `/admin`. **Form Teams** randomly assigns every QR-confirmed outsider and Batch 14 participant to a saved preview. Review names, phones, and emails, or click **Regenerate Teams** to replace the preview. Neither action sends email. **Send Emails** asks for confirmation, freezes the teams, and starts individual Gmail notifications. The dashboard shows pending, sent, failed, and uncertain sending states. Use **Send pending emails** if a browser session was interrupted, and **Retry failed emails** only for failed records. Finalized teams cannot be regenerated. For exactly six participants, the system forms two teams of three because there are not two existing teams to receive the extra members.
 
+### Admin Mailbox
+
+After applying migration 015, open **Mailbox** in `/admin`. Search active outside and Batch 14 registrations by name, email, or phone, then choose individual recipients or **Select All Participants**. Rejected outside registrations are excluded. Write a subject and message; the editor supports paragraphs, line breaks, bold, italic, and bullets. **Save Draft** stores an unsent message. **Preview Email** shows the rendered content and complete recipient list. **Send Email** asks for confirmation, freezes the recipients, and sends each person an individual Gmail message. The **Sent Emails** view tracks each delivery and lets admins resume pending or retry failed messages without resending successful ones. A **Needs review** status means Gmail may have accepted the message even though its result could not be recorded; check the sender mailbox before resolving it. Keep the admin browser tab open while bulk mail is sending, or resume pending deliveries later. Mailbox messages do not change contest team notifications.
+
 ## Batch 14 Google Form
 
 1. In the Google Cloud project, enable the [Google Sheets API](https://developers.google.com/workspace/sheets/api/quickstart/js). Create a service account and a JSON key. The site uses only the service account email and `private_key` from that JSON; keep the key server side.
@@ -73,7 +77,7 @@ The Google Sheets connection also syncs new Form responses before each outside r
 2. Import it into Vercel as a Next.js project.
 3. Add the Supabase, Gmail API, and check-in signing variables from `.env.example` in Vercel **Project Settings → Environment Variables**.
 4. Set Supabase Auth's Site URL to the production domain.
-5. For a fresh project, apply migrations 001 through 014 in order, then deploy. For the current live site on 013, apply migration 014 before using Contest Team Management. The build runs `next build`.
+5. For a fresh project, apply migrations 001 through 015 in order, then deploy. For a site already on 014, apply migration 015 before using Mailbox. The build runs `next build`.
 
 ### GitHub Actions credentials and project settings errors
 

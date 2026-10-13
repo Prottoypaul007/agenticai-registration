@@ -31,6 +31,13 @@ describe("Gmail registration delivery", () => {
     expect(mime).not.toContain("workshop-checkin-qr");
     expect(mime).not.toContain("Content-Disposition: attachment");
   });
+  it("builds a custom admin message without a registration reference", () => {
+    const mime = Buffer.from(buildGmailMessage({
+      to: "participant@example.com", subject: "Schedule update", html: "<p>See you soon.</p>", text: "See you soon."
+    }, "no-reply@example.com"), "base64url").toString("utf8");
+    expect(mime).toContain("To: participant@example.com");
+    expect(mime).not.toContain("Content-Disposition: attachment");
+  });
   it("builds a Batch 14 QR message with its own reference", () => {
     const batch = { ...message, reference: "B14-ABCDEF123456" };
     const mime = Buffer.from(buildGmailMessage(batch, "no-reply@example.com"), "base64url").toString("utf8");

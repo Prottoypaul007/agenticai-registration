@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import { ArrowDownToLine, BarChart3, CalendarClock, ChevronLeft, ChevronRight, LogOut, QrCode, Search, Settings2, Users, X } from "lucide-react";
+import { ArrowDownToLine, BarChart3, CalendarClock, ChevronLeft, ChevronRight, LogOut, Mail, QrCode, Search, Settings2, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 import { PaymentNumberSettings } from "@/components/payment-number-settings";
@@ -12,6 +12,7 @@ import { Batch14Dashboard } from "@/components/batch14-dashboard";
 import { PresentList } from "@/components/present-list";
 import { ContestTeamManagement } from "@/components/contest-team-management";
 import { StudentSearch } from "@/components/student-search";
+import { AdminMailbox } from "@/components/admin-mailbox";
 import type { EventSettings } from "@/lib/validation";
 
 type Participant = Record<string, unknown> & {
@@ -32,7 +33,7 @@ const isoValue = (value: string) => value ? new Date(`${value}:00+06:00`).toISOS
 const money = (value: number) => `৳${Number(value || 0).toLocaleString("en-US")}`;
 
 export function AdminDashboard({ email }: { email: string }) {
-  const [tab, setTab] = useState<"overview" | "review" | "batch14" | "participants" | "search" | "checkin" | "present" | "teams" | "export" | "settings">("review");
+  const [tab, setTab] = useState<"overview" | "review" | "batch14" | "participants" | "search" | "mailbox" | "checkin" | "present" | "teams" | "export" | "settings">("review");
   const [stats, setStats] = useState<Stats | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [count, setCount] = useState(0);
@@ -120,7 +121,7 @@ export function AdminDashboard({ email }: { email: string }) {
       setExporting(false);
     }
   }
-  const nav = [["review", QrCode, "Outside registrations"], ["batch14", Users, "Batch 14"], ["search", Search, "Search students"], ["overview", BarChart3, "Overview"], ["participants", Users, "Outside records"], ["checkin", QrCode, "Check-in"], ["present", Users, "Present"], ["teams", Users, "Contest Team Management"], ["export", ArrowDownToLine, "Export"], ["settings", Settings2, "Event settings"]] as const;
+  const nav = [["review", QrCode, "Outside registrations"], ["batch14", Users, "Batch 14"], ["search", Search, "Search students"], ["mailbox", Mail, "Mailbox"], ["overview", BarChart3, "Overview"], ["participants", Users, "Outside records"], ["checkin", QrCode, "Check-in"], ["present", Users, "Present"], ["teams", Users, "Contest Team Management"], ["export", ArrowDownToLine, "Export"], ["settings", Settings2, "Event settings"]] as const;
   const overview = stats ? [
     ["Total registrations", stats.active_total], ["Outside registrations", stats.total], ["Batch 14 registrations", stats.batch14.total],
     ["Awaiting outside QR review", stats.qr_pending_review], ["Batch 14 awaiting review", stats.batch14.pending],
@@ -137,6 +138,7 @@ export function AdminDashboard({ email }: { email: string }) {
     {tab === "review" && <RegistrationReview onUpdated={() => { void loadStats(); void loadParticipants(); }}/>}
     {tab === "batch14" && <Batch14Dashboard onUpdated={() => { void loadStats(); }}/>}
     {tab === "search" && <StudentSearch/>}
+    {tab === "mailbox" && <AdminMailbox/>}
     {tab === "overview" && (stats ? <div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{overview.map(([label, value]) => <div key={label} className="panel rounded-2xl p-6"><p className="text-sm text-slate-400">{label}</p><p className="mt-4 text-3xl font-bold text-white">{value}</p></div>)}</div>
       <div className="panel mt-6 rounded-2xl p-6"><div className="flex items-center gap-2"><CalendarClock size={18} className="text-cyan-400"/><h2 className="font-semibold">Registrations over time</h2></div><div className="mt-7 flex min-h-42 items-end gap-2 overflow-x-auto">{stats.daily.length ? [...stats.daily].reverse().map(d => <div key={d.date} className="flex min-w-10 flex-1 flex-col items-center gap-2"><span className="text-xs text-slate-400">{d.count}</span><div className="w-full rounded-t bg-cyan-400/70" style={{ height: `${Math.max(8, d.count / Math.max(...stats.daily.map(x => x.count)) * 110)}px` }}/><span className="text-[10px] text-slate-500">{d.date.slice(5)}</span></div>) : <p className="self-center text-sm text-slate-400">No registrations yet.</p>}</div></div>
