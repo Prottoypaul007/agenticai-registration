@@ -44,7 +44,7 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
   const paymentNumbers = { bkash: settings.bkash_merchant_number, rocket: settings.rocket_number, nagad: settings.nagad_number };
   const paymentNumber = paymentNumbers[method];
   const methodLabel = method === "bkash" ? "bKash" : method === "rocket" ? "Rocket" : "Nagad";
-  const error = (name: keyof RegistrationInput) => (errors[name]?.type === "server" || attemptedSteps[step] || (step < 2 && touchedFields[name])) && errors[name]?.message && <p role="alert" className="mt-1.5 text-xs text-rose-300">{String(errors[name]?.message)}</p>;
+  const error = (name: keyof RegistrationInput) => (errors[name]?.type === "server" || attemptedSteps[step] || touchedFields[name]) && errors[name]?.message && <p role="alert" className="mt-1.5 text-xs text-rose-300">{String(errors[name]?.message)}</p>;
   const label = (name: keyof RegistrationInput, text: string, required: boolean, children: React.ReactNode) => <label className="block"><span className="mb-2 block text-sm font-medium text-slate-200">{text} {required && <span className="text-cyan-400">*</span>}</span>{children}{error(name)}</label>;
   const yesNo = (name: keyof RegistrationInput, title: string) => label(name, title, true, <Select defaultValue="" {...register(name)}><option value="" disabled>Select an answer</option><option>Yes</option><option>No</option></Select>);
   const copyPaymentNumber = async () => {
@@ -86,7 +86,7 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
       router.push(`/registration-success?ref=${encodeURIComponent(result.reference)}&status=${encodeURIComponent(result.status)}&proof=${encodeURIComponent(result.proof)}`);
     } catch { setServerError("Network error. Please check your connection and try again."); }
     finally { setSubmitting(false); }
-  }, () => { setAttemptedSteps(previous => previous.map((attempted, index) => index === step ? true : attempted)); setServerError("Sorry, please correct the highlighted fields before submitting."); });
+  }, () => { setAttemptedSteps(previous => previous.map((attempted, index) => index === step ? true : attempted)); setServerError(""); });
 
   return <div className="panel mx-auto max-w-4xl overflow-hidden rounded-3xl">
     <div className="border-b border-white/10 px-4 py-7 sm:px-6 md:px-10"><div className="flex items-center justify-between gap-4"><div><p className="text-xs font-semibold tracking-widest text-cyan-300 uppercase">Registration</p><h3 className="mt-1 text-lg font-semibold sm:text-xl">{steps[step]}</h3></div><span className="font-mono text-sm text-slate-400">0{step + 1} / 03</span></div><div className="mt-6 grid grid-cols-3 gap-2" aria-label={`Step ${step + 1} of 3`}>{steps.map((s, i) => <div key={s} className="h-1.5 rounded-full" style={{ background: i <= step ? "#55d9e6" : "#26384e" }}/>)}</div><div className="mt-3 hidden justify-between gap-2 text-[11px] text-slate-500 sm:flex">{steps.map(s => <span key={s}>{s}</span>)}</div></div>
