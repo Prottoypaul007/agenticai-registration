@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formContestTeams, techTeamNames, type ContestParticipant } from "./contest-teams";
+import { curatedTechTeamNames, formContestTeams, techTeamNames, type ContestParticipant } from "./contest-teams";
 
 const participants = (count: number): ContestParticipant[] => Array.from({ length: count }, (_, i) => ({
   source: "outsider", reference: `AGNT-${String(i).padStart(12, "0")}`,
@@ -21,8 +21,11 @@ describe("contest team formation", () => {
     expect(input.map(person => person.reference)).toEqual(participants(count).map(person => person.reference));
   });
   it("provides distinct tech names for the largest supported roster", () => {
+    expect(curatedTechTeamNames).toHaveLength(20);
+    expect(new Set(curatedTechTeamNames).size).toBe(20);
+    expect(new Set(techTeamNames(20))).toEqual(new Set(curatedTechTeamNames));
     const names = techTeamNames(250);
     expect(new Set(names).size).toBe(250);
-    expect(names.every(name => /^(Quantum|Neural|Binary|Pixel|Cyber|Circuit|Vector|Cipher|Cloud|Kernel|Logic|Syntax|Data|Photon|Fusion|Nano) /.test(name))).toBe(true);
+    expect(names.every(name => /^(Quantum|Neural|Binary|Pixel|Cyber|Circuit|Vector|Cipher|Cloud|Kernel|Logic|Syntax|Data|Photon|Fusion|Nano|Algorithm|Matrix|API|Debug) /.test(name))).toBe(true);
   });
 });

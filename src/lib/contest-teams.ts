@@ -10,18 +10,32 @@ export type ContestParticipant = {
 
 export type ContestTeam = { name: string; members: ContestParticipant[] };
 
+export const curatedTechTeamNames = [
+  "Quantum Architects", "Neural Navigators", "Binary Builders", "Pixel Pioneers", "Cyber Sentinels",
+  "Circuit Catalysts", "Vector Voyagers", "Cipher Crafters", "Cloud Commanders", "Kernel Knights",
+  "Logic Legends", "Syntax Sparks", "Data Dynamos", "Photon Pioneers", "Fusion Coders",
+  "Nano Networks", "Algorithm Alliance", "Matrix Makers", "API Astronauts", "Debug Detectives"
+] as const;
+
 const techPrefixes = ["Quantum", "Neural", "Binary", "Pixel", "Cyber", "Circuit", "Vector", "Cipher",
   "Cloud", "Kernel", "Logic", "Syntax", "Data", "Photon", "Fusion", "Nano"];
 const techNames = ["Coders", "Pioneers", "Bots", "Networks", "Architects", "Hackers", "Signals", "Engines",
   "Builders", "Navigators", "Makers", "Catalysts", "Crafters", "Explorers", "Innovators", "Guardians"];
 
 export function techTeamNames(count: number): string[] {
-  const names = techPrefixes.flatMap(prefix => techNames.map(name => `${prefix} ${name}`));
-  if (count > names.length) throw new Error("Too many contest teams for the available unique names");
+  const fallback = techPrefixes.flatMap(prefix => techNames.map(name => `${prefix} ${name}`))
+    .filter(name => !(curatedTechTeamNames as readonly string[]).includes(name));
+  const names: string[] = [...curatedTechTeamNames];
   for (let i = names.length - 1; i > 0; i--) {
     const j = randomInt(i + 1);
     [names[i], names[j]] = [names[j], names[i]];
   }
+  for (let i = fallback.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [fallback[i], fallback[j]] = [fallback[j], fallback[i]];
+  }
+  names.push(...fallback);
+  if (count > names.length) throw new Error("Too many contest teams for the available unique names");
   return names.slice(0, count);
 }
 
