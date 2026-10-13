@@ -5,6 +5,8 @@ body { background: #07111e; color: #f3f7fb; font-family: Arial, Helvetica, sans-
 ::selection { background: #4cdeec; color: #06101c; }
 .site-container { width: min(100% - 2rem, 1180px); margin-inline: auto; }
 @media (min-width: 640px) { .site-container { width: min(100% - 2.5rem, 1180px); } }
+.admin-container { width: min(100% - 2rem, 1500px); margin-inline: auto; }
+@media (min-width: 640px) { .admin-container { width: min(100% - 2.5rem, 1500px); } }
 .grid-bg { background-image: linear-gradient(rgba(98,165,194,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(98,165,194,.07) 1px, transparent 1px); background-size: 48px 48px; mask-image: linear-gradient(to bottom, black, transparent 95%); }
 .glow { background: radial-gradient(circle, rgba(15,192,219,.16), transparent 65%); }
 .panel { border: 1px solid rgba(177,210,235,.14); background: rgba(15,29,47,.72); box-shadow: 0 24px 65px rgba(0,0,0,.16); }
