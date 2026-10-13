@@ -21,7 +21,7 @@ const schedules = {
     rows: [
       ["9:00 AM – 11:00 AM", "Session 1"],
       ["11:00 AM – 11:30 AM", "Break"],
-      ["11:30 AM – 1:30 PM", "Session 2"],
+      ["11:30 AM – 1:30 PM", "Demonstration and Q&A"],
       ["1:30 PM – 2:15 PM", "Break"],
       ["2:15 PM – 3:15 PM", "Closing Ceremony"],
     ],
