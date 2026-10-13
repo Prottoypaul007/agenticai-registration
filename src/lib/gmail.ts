@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 
-type Message = { to: string; subject: string; html: string; text: string; qrPngBase64?: string; reference?: string };
+type Message = { to: string; subject: string; html: string; text: string; qrPngBase64?: string; reference?: string;
+  attachments?: { name: string; contentType: string; data: Buffer }[] };
 
 export class GmailDeliveryUncertainError extends Error {
   constructor() { super("Gmail delivery could not be confirmed. Check the sender mailbox before retrying."); }
@@ -22,23 +23,38 @@ export function buildGmailMessage(message: Message, sender: string) {
   ];
   const commonHeaders = [`From: Workshop <${sender}>`, `To: ${message.to}`,
     `Subject: =?UTF-8?B?${Buffer.from(message.subject, "utf8").toString("base64")}?=`, "MIME-Version: 1.0"];
-  if (!message.qrPngBase64) {
+  if (!message.qrPngBase64 && !message.attachments?.length) {
     return Buffer.from([...commonHeaders, `Content-Type: multipart/alternative; boundary="${alternative}"`, "",
       ...alternativeParts, ""].join("\r\n"), "utf8").toString("base64url");
+  }
+  if (!message.qrPngBase64 && message.attachments?.length) {
+    const mixed = `mixed-${randomBytes(12).toString("hex")}`;
+    const parts = [...commonHeaders, `Content-Type: multipart/mixed; boundary="${mixed}"`, "",
+      `--${mixed}`, `Content-Type: multipart/alternative; boundary="${alternative}"`, "", ...alternativeParts];
+    for (const file of message.attachments) {
+      const safeName = file.name.replace(/[^\x20-\x7e]|["\\]/g, "_");
+      parts.push(`--${mixed}`, `Content-Type: ${file.contentType}`,
+        "Content-Transfer-Encoding: base64",
+        `Content-Disposition: attachment; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(file.name)}`,
+        "", base64Lines(file.data.toString("base64")));
+    }
+    parts.push(`--${mixed}--`, "");
+    return Buffer.from(parts.join("\r\n"), "utf8").toString("base64url");
   }
   const mixed = `mixed-${randomBytes(12).toString("hex")}`;
   const related = `related-${randomBytes(12).toString("hex")}`;
   const filename = `workshop-${message.reference}.png`;
+  const qrPngBase64 = message.qrPngBase64!;
   const lines = [
     ...commonHeaders, `Content-Type: multipart/mixed; boundary="${mixed}"`, "",
     `--${mixed}`, `Content-Type: multipart/related; boundary="${related}"`, "",
     `--${related}`, `Content-Type: multipart/alternative; boundary="${alternative}"`, "",
     ...alternativeParts,
     `--${related}`, `Content-Type: image/png; name="${filename}"`, "Content-Transfer-Encoding: base64",
-    "Content-ID: <workshop-checkin-qr>", `Content-Disposition: inline; filename="${filename}"`, "", base64Lines(message.qrPngBase64),
+    "Content-ID: <workshop-checkin-qr>", `Content-Disposition: inline; filename="${filename}"`, "", base64Lines(qrPngBase64),
     `--${related}--`,
     `--${mixed}`, `Content-Type: image/png; name="${filename}"`, "Content-Transfer-Encoding: base64",
-    `Content-Disposition: attachment; filename="${filename}"`, "", base64Lines(message.qrPngBase64),
+    `Content-Disposition: attachment; filename="${filename}"`, "", base64Lines(qrPngBase64),
     `--${mixed}--`, ""
   ];
   return Buffer.from(lines.join("\r\n"), "utf8").toString("base64url");

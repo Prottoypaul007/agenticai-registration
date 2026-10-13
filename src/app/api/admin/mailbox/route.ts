@@ -3,9 +3,12 @@ import { adminUser, serviceClient } from "@/lib/supabase";
 import { syncBatch14Registrations } from "@/lib/batch14-sync";
 import { GmailDeliveryUncertainError, sendGmailMessage } from "@/lib/gmail";
 import { mailboxEmailHtml } from "@/lib/mailbox-content";
+import { MAILBOX_ATTACHMENT_BUCKET, type MailboxAttachment } from "@/lib/mailbox-attachments";
+import { cleanupMailboxAttachments } from "@/lib/mailbox-attachment-cleanup";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 type Ref = { source: "outsider" | "batch14"; reference: string };
+const publicAttachments = (files: MailboxAttachment[]) => files.map(({ id, name, size, mime, status }) => ({ id, name, size, mime, status }));
 
 function recipientRefs(value: unknown): Ref[] | null {
   if (!Array.isArray(value) || value.length > 2000) return null;
@@ -63,11 +66,13 @@ export async function GET(request: NextRequest) {
         deliveries.push(...(data || []));
         if (!data || data.length < 500) break;
       }
-      return NextResponse.json({ message: message.data, deliveries }, { headers: { "Cache-Control": "no-store" } });
+      return NextResponse.json({ message: { ...message.data,
+        attachments: publicAttachments((message.data.attachments || []) as MailboxAttachment[]) }, deliveries },
+        { headers: { "Cache-Control": "no-store" } });
     }
     const status = params.get("status") === "draft" ? "draft" : "queued";
     const page = Math.max(0, Math.min(10000, Number(params.get("page")) || 0));
-    const { data, count, error } = await client.from("mailbox_messages").select("id,subject,body,audience,recipient_refs,status,created_at,updated_at,finalized_at", { count: "exact" })
+    const { data, count, error } = await client.from("mailbox_messages").select("id,subject,body,audience,recipient_refs,status,created_at,updated_at,finalized_at,attachments", { count: "exact" })
       .eq("status", status).order("created_at", { ascending: false }).range(page * 25, page * 25 + 24);
     if (error) throw new Error("Mailbox tables are unavailable. Apply migration 015.");
     const ids = (data || []).map(row => row.id);
@@ -78,14 +83,16 @@ export async function GET(request: NextRequest) {
           .select("message_id,status,id").in("message_id", ids).order("id").range(offset, offset + 499);
         if (deliveryError) throw new Error("Unable to load email delivery status.");
         for (const delivery of deliveries || []) {
-          deliveryCounts[delivery.message_id] ??= { pending: 0, sending: 0, sent: 0, failed: 0 };
+          deliveryCounts[delivery.message_id] ??= { pending: 0, sending: 0, sent: 0, failed: 0, expired: 0 };
           deliveryCounts[delivery.message_id][delivery.status]++;
         }
         if (!deliveries || deliveries.length < 500) break;
       }
     }
-    return NextResponse.json({ messages: (data || []).map(row => ({ ...row, counts: deliveryCounts[row.id] ||
-      { pending: 0, sending: 0, sent: 0, failed: 0 } })), count, page }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ messages: (data || []).map(row => ({ ...row,
+      attachments: publicAttachments((row.attachments || []) as MailboxAttachment[]),
+      counts: deliveryCounts[row.id] || { pending: 0, sending: 0, sent: 0, failed: 0, expired: 0 } })), count, page },
+      { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to load mailbox." }, { status: 503 });
   }
@@ -105,8 +112,23 @@ export async function POST(request: NextRequest) {
           !["selected", "all"].includes(String(body.audience)) ||
           (body.id !== undefined && (typeof body.id !== "string" || !uuid.test(body.id))))
         return NextResponse.json({ error: "Invalid email or recipient selection." }, { status: 400 });
-      if (body.action === "finalize" && (!body.subject.trim() || !body.message.trim() || refs.length === 0))
-        return NextResponse.json({ error: "Add a subject, message, and recipients before sending." }, { status: 400 });
+      if (body.action === "finalize" && (!body.subject.trim() || refs.length === 0))
+        return NextResponse.json({ error: "Add a subject and recipients before sending." }, { status: 400 });
+      if (body.action === "finalize") {
+        const { data: draft, error: draftError } = body.id ? await client.from("mailbox_messages")
+          .select("attachments").eq("id", body.id).eq("status", "draft").maybeSingle() : { data: null, error: null };
+        if (draftError) throw new Error("Unable to check attachments.");
+        const files = (draft?.attachments || []) as MailboxAttachment[];
+        if (!body.message.trim() && !files.length)
+          return NextResponse.json({ error: "Add a message or at least one attachment before sending." }, { status: 400 });
+        for (const file of files) {
+          if (file.status !== "ready" || !file.path)
+            return NextResponse.json({ error: "Wait for all attachments to finish uploading." }, { status: 409 });
+          const { data: info, error: infoError } = await client.storage.from(MAILBOX_ATTACHMENT_BUCKET).info(file.path);
+          if (infoError || !info || info.size !== file.size)
+            return NextResponse.json({ error: `Attachment ${file.name} is unavailable. Remove and upload it again.` }, { status: 409 });
+        }
+      }
       if (body.action === "finalize") await syncBatch14Registrations(admin.id);
       let id = body.id as string | undefined;
       if (!id) {
@@ -146,16 +168,29 @@ export async function POST(request: NextRequest) {
         p_admin_id: admin.id, p_delivery_id: body.id
       });
       if (claimError) throw new Error("Unable to claim this email delivery. Apply migration 015 if needed.");
-      if (claim?.error) return NextResponse.json({ error: "This email was already sent or is being sent." }, { status: 409 });
+      if (claim?.error) return NextResponse.json({ error: claim.error === "attachments_expired" ?
+        "Temporary attachments expired. Start a new message to send these resources." :
+        "This email was already sent or is being sent." }, { status: 409 });
       let sent = false;
       try {
+        const files: { name: string; contentType: string; data: Buffer }[] = [];
+        for (const file of (claim.attachments || []) as MailboxAttachment[]) {
+          if (!file.path || file.status !== "ready") throw new Error("Attachment is no longer available.");
+          const { data, error } = await client.storage.from(MAILBOX_ATTACHMENT_BUCKET).download(file.path);
+          if (error || !data || data.size !== file.size) throw new Error(`Unable to load ${file.name}. Retry after checking the attachment.`);
+          files.push({ name: file.name, contentType: file.mime, data: Buffer.from(await data.arrayBuffer()) });
+        }
         await sendGmailMessage({ to: claim.email, subject: claim.subject,
-          text: `${claim.body}\n\nThis mailbox is not monitored.`, html: mailboxEmailHtml(claim.body) });
+          text: `${claim.body}\n\nThis mailbox is not monitored.`, html: mailboxEmailHtml(claim.body), attachments: files });
         sent = true;
         const { data, error } = await client.from("mailbox_deliveries")
           .update({ status: "sent", sent_at: new Date().toISOString(), error: null })
           .eq("id", claim.id).eq("status", "sending").select("id").maybeSingle();
         if (error || !data) throw error || new Error("Delivery status could not be saved.");
+        if (files.length) {
+          try { await cleanupMailboxAttachments(claim.message_id); }
+          catch (cleanupError) { console.error("Mailbox attachment cleanup will be retried", claim.message_id, cleanupError); }
+        }
         return NextResponse.json({ id: claim.id, status: "sent" });
       } catch (error) {
         if (sent || error instanceof GmailDeliveryUncertainError) {

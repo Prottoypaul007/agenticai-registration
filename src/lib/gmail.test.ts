@@ -38,6 +38,21 @@ describe("Gmail registration delivery", () => {
     expect(mime).toContain("To: participant@example.com");
     expect(mime).not.toContain("Content-Disposition: attachment");
   });
+  it("builds an individual mailbox email with multiple file attachments and no body", () => {
+    const mime = Buffer.from(buildGmailMessage({
+      to: "participant@example.com", subject: "Workshop resources", html: "", text: "",
+      attachments: [
+        { name: "slides.pptx", contentType: "application/vnd.openxmlformats-officedocument.presentationml.presentation", data: Buffer.from("slides") },
+        { name: "notes.pdf", contentType: "application/pdf", data: Buffer.from("notes") }
+      ]
+    }, "no-reply@example.com"), "base64url").toString("utf8");
+    expect(mime).toContain("To: participant@example.com");
+    expect(mime).toContain('filename="slides.pptx"');
+    expect(mime).toContain('filename="notes.pdf"');
+    expect(mime).toContain(Buffer.from("slides").toString("base64"));
+    expect(mime).toContain(Buffer.from("notes").toString("base64"));
+    expect(mime.match(/Content-Disposition: attachment;/g)).toHaveLength(2);
+  });
   it("builds a Batch 14 QR message with its own reference", () => {
     const batch = { ...message, reference: "B14-ABCDEF123456" };
     const mime = Buffer.from(buildGmailMessage(batch, "no-reply@example.com"), "base64url").toString("utf8");
