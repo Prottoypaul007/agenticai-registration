@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, Code2, Boxes, Rocket, Check, Terminal } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CalendarDays, Code2, Boxes, Rocket, Check, Terminal, Facebook } from "lucide-react";
 import Image from "next/image";
 import { Navigation } from "@/components/navigation";
 import { VenueLink } from "@/components/venue-link";
@@ -40,7 +40,7 @@ export default async function HomePage() {
       <p className="mt-5 max-w-lg text-base leading-7 text-slate-400">Two days of exploring next-generation software architecture, intelligent AI agents, and real-world deployment.</p>
       <div className="mt-8 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-300"><span className="flex items-center gap-2"><CalendarDays size={17} className="text-cyan-400"/>{EVENT_DATES}</span><VenueLink venue={settings.venue}/></div>
       {registeredCount !== null && <p className="mt-5 inline-flex rounded-full border border-cyan-400/30 bg-cyan-400/8 px-4 py-2 text-sm font-semibold text-cyan-200">{registeredCount.toLocaleString("en-US")} total registrations</p>}
-      <div className="mt-10 flex flex-wrap gap-3"><Button asChild size="lg"><a href="#register">{atCapacity ? "Registration Full" : "Register Now"} <ArrowRight size={18}/></a></Button><Button asChild size="lg" variant="outline"><a href="#workshops">Explore Workshops</a></Button></div></div><HeroVisual/>
+      <div className="mt-10 flex flex-wrap gap-3"><Button asChild size="lg"><a href="#register">{atCapacity ? "Registration Full" : "Register Now"} <ArrowRight size={18}/></a></Button><Button asChild size="lg" variant="outline"><a href="#workshops">Explore Workshops</a></Button><Button asChild size="lg" variant="outline"><a href="https://www.facebook.com/events/1573871584046810/?active_tab=about" target="_blank" rel="noopener noreferrer"><Facebook size={18}/> Facebook Event <ArrowUpRight size={16}/></a></Button></div></div><HeroVisual/>
     </div></section>
     <section aria-label="Event collaborators" className="relative overflow-hidden border-b border-white/10 bg-[#0a1726]"><div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-72 max-w-3xl rounded-full bg-cyan-400/8 blur-3xl"/><div className="site-container relative py-16 md:py-20"><div className="mx-auto max-w-2xl text-center"><p className="section-kicker">The people behind the workshop</p><h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Built together.</h2></div>
       <div className="mt-12 flex items-center gap-4"><span className="h-px flex-1 bg-gradient-to-r from-transparent to-white/15"/><h3 className="text-center text-xs font-semibold tracking-[.2em] text-slate-400 uppercase">In collaboration with</h3><span className="h-px flex-1 bg-gradient-to-l from-transparent to-white/15"/></div>
