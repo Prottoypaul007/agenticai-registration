@@ -1,4 +1,5 @@
 import QRCode from "qrcode";
+import { EVENT_VENUE, EVENT_MAPS_URL } from "@/lib/venue";
 import { createTicket } from "@/lib/checkin";
 import { serviceClient } from "@/lib/supabase";
 import { EVENT_DATES, EVENT_TITLE } from "@/lib/utils";
@@ -25,14 +26,14 @@ export async function sendRegistrationEmail(reference: string): Promise<boolean>
       <h1 style="font-size:24px">${escapeHtml(EVENT_TITLE)}</h1>
       <p>Hello ${name}, your workshop registration has been confirmed.</p>
       <p><strong>Reference:</strong> ${escapeHtml(reference)}<br><strong>Dates:</strong> ${escapeHtml(EVENT_DATES)}<br>
-      <strong>Attendance:</strong> ${escapeHtml(participant.attendance)}<br>
+      <strong>Venue:</strong> ${escapeHtml(EVENT_VENUE)}<br><a href="${escapeHtml(EVENT_MAPS_URL)}">View on Google Maps</a><br><strong>Attendance:</strong> ${escapeHtml(participant.attendance)}<br>
       <strong>Institution:</strong> ${escapeHtml(participant.institution)}</p>
       <p>The organizers have reviewed your payment details. This QR code is used only to record your workshop attendance.</p>
       <p>Bring this QR code on your workshop day. An admin will scan it to record your attendance. Keep this email private.</p>
       <img src="cid:workshop-checkin-qr" width="280" height="280" alt="Workshop check-in QR code" style="display:block;max-width:100%;height:auto" />
       <p style="font-size:12px;color:#64748b">If the image is hidden by your email app, open the attached QR image. This mailbox is not monitored.</p></div>`;
     await sendGmailMessage({ to: participant.email, subject: `${EVENT_TITLE} QR ticket ${reference}`,
-      html, text: `Hello ${participant.full_name}, your registration for ${EVENT_TITLE} has been confirmed. Reference: ${reference}. Dates: ${EVENT_DATES}. Attendance: ${participant.attendance}. Bring the attached QR code on your workshop day. It is used only to record attendance. This mailbox is not monitored.`,
+      html, text: `Hello ${participant.full_name}, your registration for ${EVENT_TITLE} has been confirmed. Reference: ${reference}. Dates: ${EVENT_DATES}. Venue: ${EVENT_VENUE}. Google Maps: ${EVENT_MAPS_URL}. Attendance: ${participant.attendance}. Bring the attached QR code on your workshop day. It is used only to record attendance. This mailbox is not monitored.`,
       qrPngBase64: png, reference });
     const { error: updateError } = await client.from("registrations")
       .update({ registration_status: "confirmed", confirmation_email_status: "sent", confirmation_email_sent_at: new Date().toISOString(),
@@ -61,8 +62,8 @@ export async function sendBatch14Email(reference: string): Promise<boolean> {
     const png = (await QRCode.toDataURL(JSON.stringify(ticket), { width: 420, margin: 2, errorCorrectionLevel: "M" })).split(",")[1];
     await sendGmailMessage({ to: participant.email, reference,
       subject: `${EVENT_TITLE} QR ticket ${reference}`,
-      html: `<div style="max-width:580px;margin:auto;font-family:Arial,sans-serif;color:#13233a;line-height:1.6"><h1>${escapeHtml(EVENT_TITLE)}</h1><p>Hello ${escapeHtml(participant.full_name)}, your Batch 14 workshop place is confirmed.</p><p><strong>Reference:</strong> ${escapeHtml(reference)}<br><strong>Dates:</strong> ${escapeHtml(EVENT_DATES)}<br><strong>Attendance:</strong> ${escapeHtml(participant.attendance)}</p><p>Bring this QR code on your workshop day. An admin will scan it to record your attendance. Keep this email private.</p><img src="cid:workshop-checkin-qr" width="280" height="280" alt="Workshop check-in QR code"/><p style="font-size:12px;color:#64748b">If the image is hidden, open the attached QR image. This mailbox is not monitored.</p></div>`,
-      text: `Hello ${participant.full_name}, your Batch 14 place at ${EVENT_TITLE} is confirmed. Reference: ${reference}. Dates: ${EVENT_DATES}. Attendance: ${participant.attendance}. Bring the attached QR code for check-in. This mailbox is not monitored.`,
+      html: `<div style="max-width:580px;margin:auto;font-family:Arial,sans-serif;color:#13233a;line-height:1.6"><h1>${escapeHtml(EVENT_TITLE)}</h1><p>Hello ${escapeHtml(participant.full_name)}, your Batch 14 workshop place is confirmed.</p><p><strong>Reference:</strong> ${escapeHtml(reference)}<br><strong>Dates:</strong> ${escapeHtml(EVENT_DATES)}<br><strong>Venue:</strong> ${escapeHtml(EVENT_VENUE)}<br><a href="${escapeHtml(EVENT_MAPS_URL)}">View on Google Maps</a><br><strong>Attendance:</strong> ${escapeHtml(participant.attendance)}</p><p>Bring this QR code on your workshop day. An admin will scan it to record your attendance. Keep this email private.</p><img src="cid:workshop-checkin-qr" width="280" height="280" alt="Workshop check-in QR code"/><p style="font-size:12px;color:#64748b">If the image is hidden, open the attached QR image. This mailbox is not monitored.</p></div>`,
+      text: `Hello ${participant.full_name}, your Batch 14 place at ${EVENT_TITLE} is confirmed. Reference: ${reference}. Dates: ${EVENT_DATES}. Venue: ${EVENT_VENUE}. Google Maps: ${EVENT_MAPS_URL}. Attendance: ${participant.attendance}. Bring the attached QR code for check-in. This mailbox is not monitored.`,
       qrPngBase64: png });
     const { error: updateError } = await client.from("batch14_registrations")
       .update({ qr_status: "sent", qr_sent_at: new Date().toISOString(), qr_sent_by: participant.qr_reviewed_by })

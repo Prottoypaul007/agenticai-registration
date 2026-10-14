@@ -1,6 +1,6 @@
 # Workshop on agentic software engineering — registration website
 
-Next.js, TypeScript, Tailwind CSS, shadcn-style UI components, Framer Motion, Supabase, React Hook Form, and Zod. The workshop is October 17–18, 2026 at the Institute of Information Technology (IIT).
+Next.js, TypeScript, Tailwind CSS, shadcn-style UI components, Framer Motion, Supabase, React Hook Form, and Zod. The workshop is October 17–18, 2026 at the Institute of Information Technology (IIT), University of Dhaka.
 
 For email tickets and workshop check-in, see [CHECKIN_SETUP.md](CHECKIN_SETUP.md).
 

@@ -4,6 +4,7 @@ import type { ContestParticipant } from "./contest-teams";
 const send = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 vi.mock("@/lib/gmail", () => ({ sendGmailMessage: send }));
 import { sendContestTeamEmail } from "./contest-team-email";
+import { EVENT_VENUE, EVENT_MAPS_URL } from "./venue";
 
 const member = (name: string, reference: string): ContestParticipant => ({
   source: "outsider", reference, full_name: name, email: `${name.toLowerCase()}@example.com`, phone: "01700000000"
@@ -19,6 +20,10 @@ describe("contest notification", () => {
     expect(send.mock.calls[0][0].html).toContain("Alice");
     expect(send.mock.calls[0][0].html).toContain("Bob");
     expect(send.mock.calls[0][0].html).not.toContain("Team 02");
+    expect(send.mock.calls[0][0].html).toContain(EVENT_VENUE);
+    expect(send.mock.calls[0][0].html).toContain(EVENT_MAPS_URL.replaceAll("&", "&amp;"));
+    expect(send.mock.calls[0][0].text).toContain(EVENT_VENUE);
+    expect(send.mock.calls[0][0].text).toContain(EVENT_MAPS_URL);
   });
 
   it("refuses to send a roster to a person outside that team", async () => {

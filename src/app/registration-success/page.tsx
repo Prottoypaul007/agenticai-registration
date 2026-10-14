@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { CheckCircle2, ArrowLeft, CalendarDays, MapPin } from "lucide-react";
+import { CheckCircle2, ArrowLeft, CalendarDays } from "lucide-react";
 import { EVENT_DATES, EVENT_TITLE } from "@/lib/utils";
+import { VenueLink } from "@/components/venue-link";
 import { Button } from "@/components/ui/button";
 import { verifyConfirmation } from "@/lib/confirmation";
 
@@ -15,7 +16,7 @@ export default async function SuccessPage({ searchParams }: { searchParams: Prom
       <p className="mt-5 leading-7 text-slate-300">{validRef ? `Thank you for registering for ${EVENT_TITLE}.` : "This confirmation link is missing or invalid."}</p>
       <div className="mt-8 grid gap-3 rounded-2xl border border-white/10 bg-white/3 p-6 text-left sm:grid-cols-2">
         <span className="flex items-center gap-2 text-sm text-slate-300"><CalendarDays size={17} className="text-cyan-400"/>{EVENT_DATES}</span>
-        <span className="flex items-center gap-2 text-sm text-slate-300"><MapPin size={17} className="text-cyan-400"/>Institute of Information Technology (IIT)</span>
+        <VenueLink/>
       </div>
       {validRef && <div className="mt-6">
         <p className="text-sm text-slate-400">Your registration reference</p>

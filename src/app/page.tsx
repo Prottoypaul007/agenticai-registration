@@ -1,6 +1,7 @@
-import { ArrowRight, CalendarDays, MapPin, Code2, Boxes, Rocket, Check, Terminal } from "lucide-react";
+import { ArrowRight, CalendarDays, Code2, Boxes, Rocket, Check, Terminal } from "lucide-react";
 import Image from "next/image";
 import { Navigation } from "@/components/navigation";
+import { VenueLink } from "@/components/venue-link";
 import { HeroVisual } from "@/components/hero-visual";
 import { WorkshopSchedule } from "@/components/workshop-schedule";
 import { RegistrationForm } from "@/components/registration-form";
@@ -16,7 +17,7 @@ const themes = [
 ];
 const collaborators = [
   { name: "DU", detail: "University of Dhaka", logo: "/partners/du.jpg", width: 75, height: 96, site: "https://www.du.ac.bd/" },
-  { name: "DU IIT", detail: "Institute of Information Technology", logo: "/partners/du-iit.png", width: 176, height: 96, site: "https://iit.du.ac.bd/" },
+  { name: "DU IIT", detail: "Institute of Information Technology, University of Dhaka", logo: "/partners/du-iit.png", width: 176, height: 96, site: "https://iit.du.ac.bd/" },
   { name: "ICSETEP", detail: "UGC education project", logo: "/partners/icsetp.jpeg", width: 1254, height: 1254, site: "https://icsetep.ugc.gov.bd/" },
   { name: "DSSE", detail: "Distributed Systems & Software Engineering", logo: "/partners/dsse.png", width: 96, height: 96, site: "https://dsse.iit.du.ac.bd/" }
 ];
@@ -33,11 +34,11 @@ export default async function HomePage() {
   const atCapacity = settings.capacity !== null && registeredCount !== null && registeredCount >= settings.capacity;
   return <><Navigation/><main>
     <section id="home" className="relative overflow-hidden border-b border-white/10"><div className="grid-bg absolute inset-0"/><div className="site-container relative grid items-center gap-8 py-14 lg:min-h-[660px] lg:grid-cols-[1.1fr_.9fr] lg:gap-10 lg:py-25">
-      <div><div className="mb-8 inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/8 px-4 py-2 text-xs font-semibold tracking-[.12em] text-cyan-300 uppercase"><span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_10px_#4ddde8]"/> Two-day technical workshop · IIT</div>
+      <div><div className="mb-8 inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/8 px-4 py-2 text-xs font-semibold tracking-[.12em] text-cyan-300 uppercase"><span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_10px_#4ddde8]"/> Two-day technical workshop · IIT, University of Dhaka</div>
       <h1 className="max-w-[760px] text-[clamp(3rem,6vw,5.5rem)] leading-[1.03] font-bold tracking-[-.055em]">Workshop on <span className="text-cyan-400">agentic software engineering</span></h1>
       <p className="mt-6 max-w-xl text-xl font-medium text-slate-200">Build, deploy, and showcase intelligent software systems.</p>
       <p className="mt-5 max-w-lg text-base leading-7 text-slate-400">Two days of exploring next-generation software architecture, intelligent AI agents, and real-world deployment.</p>
-      <div className="mt-8 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-300"><span className="flex items-center gap-2"><CalendarDays size={17} className="text-cyan-400"/>{EVENT_DATES}</span><span className="flex items-center gap-2"><MapPin size={17} className="text-cyan-400"/>Institute of Information Technology (IIT)</span></div>
+      <div className="mt-8 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-300"><span className="flex items-center gap-2"><CalendarDays size={17} className="text-cyan-400"/>{EVENT_DATES}</span><VenueLink venue={settings.venue}/></div>
       {registeredCount !== null && <p className="mt-5 inline-flex rounded-full border border-cyan-400/30 bg-cyan-400/8 px-4 py-2 text-sm font-semibold text-cyan-200">{registeredCount.toLocaleString("en-US")} total registrations</p>}
       <div className="mt-10 flex flex-wrap gap-3"><Button asChild size="lg"><a href="#register">{atCapacity ? "Registration Full" : "Register Now"} <ArrowRight size={18}/></a></Button><Button asChild size="lg" variant="outline"><a href="#workshops">Explore Workshops</a></Button></div></div><HeroVisual/>
     </div></section>
@@ -55,5 +56,5 @@ export default async function HomePage() {
     <section aria-label="Event organizer" className="relative overflow-hidden border-b border-white/10 bg-[#0a1726]"><div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-72 max-w-3xl rounded-full bg-cyan-400/8 blur-3xl"/><div className="site-container relative py-16 md:py-20"><div className="mx-auto max-w-2xl text-center"><p className="section-kicker">Event organizer</p><h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Meet BSSE 16.</h2></div>
       <div className="panel relative mx-auto mt-10 flex max-w-2xl flex-col items-center gap-5 overflow-hidden rounded-3xl border border-cyan-400/25 p-7 text-center shadow-[0_24px_80px_rgba(0,0,0,.18)] sm:flex-row sm:text-left md:p-9"><div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-cyan-400/10 blur-2xl"/><div aria-hidden="true" className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/35 bg-[#102b40] text-center shadow-[0_0_32px_rgba(24,203,225,.12)]"><span className="text-lg font-black leading-tight tracking-tight text-white">BSSE<br/><span className="text-cyan-300">16</span></span></div><div className="relative"><p className="mt-2 text-sm leading-6 text-slate-400">The 16th batch of Bachelor of Science in Software Engineering at IIT, University of Dhaka.</p></div></div>
     </div></section>
-  </main><footer className="border-t border-white/10 py-8"><div className="site-container flex flex-wrap items-center justify-between gap-4 text-sm text-slate-500"><span className="flex items-center gap-2 text-slate-300"><Terminal size={17} className="text-cyan-400"/> {EVENT_TITLE}</span><span>{EVENT_DATES} · {settings.venue}</span></div></footer></>;
+  </main><footer className="border-t border-white/10 py-8"><div className="site-container flex flex-wrap items-center justify-between gap-4 text-sm text-slate-500"><span className="flex items-center gap-2 text-slate-300"><Terminal size={17} className="text-cyan-400"/> {EVENT_TITLE}</span><div className="flex flex-wrap items-start gap-4"><span>{EVENT_DATES}</span><VenueLink venue={settings.venue}/></div></div></footer></>;
 }
