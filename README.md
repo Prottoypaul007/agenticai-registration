@@ -1,6 +1,6 @@
 # Workshop on agentic software engineering — registration website
 
-Next.js, TypeScript, Tailwind CSS, shadcn-style UI components, Framer Motion, Supabase, React Hook Form, and Zod. The workshop is October 17–18, 2026 at the Institute of Information Technology (IIT).
+Next.js, TypeScript, Tailwind CSS, shadcn-style UI components, Framer Motion, Supabase, React Hook Form, and Zod. The workshop is October 17–18, 2026 at the Institute of Information Technology (IIT), University of Dhaka.
 
 For email tickets and workshop check-in, see [CHECKIN_SETUP.md](CHECKIN_SETUP.md).
 
@@ -72,6 +72,12 @@ After applying migration 016, **Attach Resources** accepts up to five PDF, Offic
 5. Turn on **Open remaining seats to outside registrations** in **Event settings** and save. The website closes when the combined count reaches capacity (45 for this event). The Batch 14 Google Form can keep collecting responses beyond that threshold, and syncing imports them for admin review. Batch 14 students use only the Google Form. The public total count and the **Present** tab include both groups.
 
 The Google Sheets connection also syncs new Form responses before each outside registration is accepted, so the current Batch 14 responses take priority in the shared capacity check. It never edits the spreadsheet. The Batch 14 dashboard syncs on opening and every minute while visible; the Sync button refreshes it immediately. If Google Sheets is temporarily unavailable, outside submissions pause rather than risk overbooking Batch 14 places.
+
+### Capacity concurrency verification
+
+Run `npm run test:concurrency` to test the actual database functions in a fresh, isolated local PostgreSQL cluster. The test applies every migration, sets the test capacity to 40, and submits 310 requests over separate concurrent database connections. It verifies an empty event, competition for the final place with Batch 14 entries, a full event, all places taken by Batch 14, rejected registrations freeing places, and an existing Batch 14 count above the limit. Every request in each scenario waits on the database lock before the test releases them together. The temporary cluster is stopped and removed afterwards; live Supabase data and settings are never used or changed. Port 15432 must be available.
+
+Pending website registrations and all imported Batch 14 entries count toward capacity; rejected website registrations do not. Changing the live capacity to 40 must be done in Admin → Event settings. Closing the Batch 14 Google Form does not remove its existing responses or prevent the website from syncing them.
 
 ## 4. Vercel deployment
 

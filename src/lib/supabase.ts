@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { configured } from "@/lib/utils";
 import { defaultSettings, type EventSettings } from "@/lib/validation";
+import { qualifiedVenue } from "@/lib/venue";
 
 export function serviceClient() {
   if (!configured()) throw new Error("Supabase is not configured");
@@ -38,7 +39,7 @@ export async function getSettings(): Promise<EventSettings> {
   if (!configured()) return defaultSettings;
   const { data, error } = await serviceClient().from("event_settings").select("registration_opens_at,registration_closes_at,capacity,outsider_registration_enabled,approval_required,allow_single_day,event_time,venue,require_iit_student_id,bkash_merchant_number,rocket_number,nagad_number").eq("id", 1).single();
   if (error || !data) throw new Error("Unable to load event settings");
-  return data as EventSettings;
+  return { ...data, venue: qualifiedVenue(data.venue) } as EventSettings;
 }
 
 export function registrationState(s: EventSettings, now = new Date()) {

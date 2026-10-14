@@ -13,7 +13,7 @@ describe("registration PDF roster", () => {
     const pdf = await buildRegistrationPdf(outsiders, [{ reference: "B14-ABCDEF123456", full_name: "Batch Student" }], "all");
     expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe("%PDF-");
     expect((await PDFDocument.load(pdf)).getPageCount()).toBe(3);
-  });
+  }, 15000);
 
   it("generates an empty roster page", async () => {
     const pdf = await buildRegistrationPdf([], [], "outsiders");

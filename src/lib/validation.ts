@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EVENT_VENUE } from "@/lib/venue";
 
 const required = (label: string, max = 120) => z.string().trim().min(1, `${label} is required`).max(max);
 export const registrationSchema = z.object({
@@ -76,6 +77,6 @@ export type EventSettings = z.infer<typeof settingsSchema>;
 export const defaultSettings: EventSettings = {
   registration_opens_at: null, registration_closes_at: null, capacity: null, outsider_registration_enabled: false,
   approval_required: true, allow_single_day: true, event_time: "To Be Announced",
-  venue: "Institute of Information Technology (IIT)", require_iit_student_id: false,
+  venue: EVENT_VENUE, require_iit_student_id: false,
   bkash_merchant_number: null, rocket_number: null, nagad_number: null
 };
