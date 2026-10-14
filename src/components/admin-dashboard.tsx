@@ -36,7 +36,7 @@ const navigation = [
   { title: "Workspace", items: [["overview", BarChart3, "Overview"]] },
   { title: "Registration", items: [["review", ClipboardCheck, "Outside review"], ["batch14", Users, "Batch 14 review"], ["search", Search, "Search students"], ["participants", Users, "Outside records"]] },
   { title: "Workshop", items: [["checkin", QrCode, "Check-in scanner"], ["present", ClipboardCheck, "Present students"], ["teams", Users, "Contest teams"]] },
-  { title: "Communication & data", items: [["mailbox", Mail, "Mailbox"], ["export", ArrowDownToLine, "Export CSV"]] },
+  { title: "Communication & data", items: [["mailbox", Mail, "Mailbox"], ["export", ArrowDownToLine, "Export PDF & CSV"]] },
   { title: "Configuration", items: [["settings", Settings2, "Event settings"]] }
 ] as const;
 const tabCopy: Record<Tab, { title: string; description: string }> = {
@@ -172,7 +172,8 @@ export function AdminDashboard({ email }: { email: string }) {
           { key: "review", title: "Outside review", detail: `${stats.qr_pending_review} awaiting QR review`, icon: ClipboardCheck },
           { key: "batch14", title: "Batch 14 review", detail: `${stats.batch14.pending} awaiting review`, icon: Users },
           { key: "checkin", title: "Check-in scanner", detail: "Record workshop attendance", icon: QrCode },
-          { key: "mailbox", title: "Mailbox", detail: "Send updates and resources", icon: Mail }
+          { key: "mailbox", title: "Mailbox", detail: "Send updates and resources", icon: Mail },
+          { key: "export", title: "Export PDF & CSV", detail: "Download the participant roster", icon: ArrowDownToLine }
         ] as const).map(({ key, title, detail, icon: Icon }) => <button key={key} type="button" onClick={() => chooseTab(key)} className="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/3 p-4 text-left transition hover:border-cyan-400/35 hover:bg-cyan-400/5"><span className="rounded-lg bg-white/6 p-2 text-cyan-300"><Icon size={18}/></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-white">{title}</span><span className="block text-xs text-slate-400">{detail}</span></span><ArrowRight size={16} className="shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-cyan-300"/></button>)}</div></section>
         <section className="panel rounded-2xl p-5 sm:p-6"><p className="section-kicker">At a glance</p><h3 className="mt-1 text-lg font-semibold">Workshop records</h3><dl className="mt-4 divide-y divide-white/8 text-sm">{[
           ["Outside / Batch 14", `${stats.total} / ${stats.batch14.total}`],
