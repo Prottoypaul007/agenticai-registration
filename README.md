@@ -73,6 +73,12 @@ After applying migration 016, **Attach Resources** accepts up to five PDF, Offic
 
 The Google Sheets connection also syncs new Form responses before each outside registration is accepted, so the current Batch 14 responses take priority in the shared capacity check. It never edits the spreadsheet. The Batch 14 dashboard syncs on opening and every minute while visible; the Sync button refreshes it immediately. If Google Sheets is temporarily unavailable, outside submissions pause rather than risk overbooking Batch 14 places.
 
+### Capacity concurrency verification
+
+Run `npm run test:concurrency` to test the actual database functions in a fresh, isolated local PostgreSQL cluster. The test applies every migration, sets the test capacity to 40, and submits 310 requests over separate concurrent database connections. It verifies an empty event, competition for the final place with Batch 14 entries, a full event, all places taken by Batch 14, rejected registrations freeing places, and an existing Batch 14 count above the limit. Every request in each scenario waits on the database lock before the test releases them together. The temporary cluster is stopped and removed afterwards; live Supabase data and settings are never used or changed. Port 15432 must be available.
+
+Pending website registrations and all imported Batch 14 entries count toward capacity; rejected website registrations do not. Changing the live capacity to 40 must be done in Admin → Event settings. Closing the Batch 14 Google Form does not remove its existing responses or prevent the website from syncing them.
+
 ## 4. Vercel deployment
 
 1. Push this project to a private or public Git repository without `.env.local`.

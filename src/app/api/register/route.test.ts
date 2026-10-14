@@ -38,6 +38,13 @@ describe("public registration route", () => {
     expect(response.status).toBe(409);
     expect(rpc).toHaveBeenCalledWith("submit_registration", expect.objectContaining({ p_payload: expect.objectContaining({ email: "test@example.com", paid_llm_models: ["Claude", "Gemini"], local_model_laptop: "Yes" }) }));
   });
+  it("rejects a stale form when the database has reached the configured limit", async () => {
+    getSettings.mockResolvedValue({ outsider_registration_enabled: true, capacity: 40 });
+    rpc.mockResolvedValue({ data: { error: "registration_full" }, error: null });
+    const response = await POST(new NextRequest("http://localhost/api/register", { method: "POST", body: JSON.stringify(payload) }));
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ code: "registration_full" });
+  });
   it("stops outside submission if the live Batch 14 sheet cannot be synced", async () => {
     syncBatch14Registrations.mockRejectedValue(new Error("Google Sheet unavailable"));
     const response = await POST(new NextRequest("http://localhost/api/register", { method: "POST", body: JSON.stringify(payload) }));

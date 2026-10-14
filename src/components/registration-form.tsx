@@ -38,8 +38,7 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
   const selected = watch("programming_languages") || [];
   const subscription = watch("paid_llm_subscription");
   const selectedPaidModels = watch("paid_llm_models") || [];
-  const attendance = settings.allow_single_day ? watch("attendance") : "Both Days";
-  const amount = paymentAmount(attendance || "Both Days");
+  const amount = paymentAmount("Both Days");
   const method = watch("payment_method") || "bkash";
   const paymentNumbers = { bkash: settings.bkash_merchant_number, rocket: settings.rocket_number, nagad: settings.nagad_number };
   const paymentNumber = paymentNumbers[method];
@@ -70,7 +69,7 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
     if (submitting || !paymentNumber) return;
     setSubmitting(true); setServerError("");
     try {
-      const response = await fetch("/api/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...values, attendance: settings.allow_single_day ? values.attendance : "Both Days" }) });
+      const response = await fetch("/api/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...values, attendance: "Both Days" }) });
       const result = await response.json();
       if (!response.ok) {
         setServerError(result.error || "Sorry, we could not submit your registration. Please try again.");
@@ -116,7 +115,7 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
         {subscription === "Yes" && selectedPaidModels.includes("Other") && <div className="sm:col-span-2">{label("paid_llm_other_model", "Other model or service", true, <Input placeholder="Enter the model or service" {...register("paid_llm_other_model")}/>)}</div>}
       </div>}
       {step === 2 && <div className="grid gap-6 sm:grid-cols-2">
-        {settings.allow_single_day && label("attendance", "Preferred attendance", true, <Select {...register("attendance")}><option>Both Days</option><option>Day 1 Only</option><option>Day 2 Only</option></Select>)}
+        {label("attendance", "Preferred attendance", true, <Select {...register("attendance")}><option>Both Days</option></Select>)}
         {yesNo("bringing_laptop", "Will you bring a laptop?")}
         {label("development_environment", "Is a development environment installed?", true, <Select defaultValue="" {...register("development_environment")}><option value="" disabled>Select an option</option><option>Yes</option><option>No</option><option>Not Sure</option></Select>)}
         {label("local_model_laptop", "Do you have a laptop capable of running a local open-source AI model?", true, <Select defaultValue="" {...register("local_model_laptop")}><option value="" disabled>Select an answer</option><option>Yes</option><option>No</option><option value="Not Sure">Not sure</option></Select>)}
