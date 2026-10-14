@@ -52,4 +52,18 @@ describe("admin registration export", () => {
     expect((await GET(new NextRequest("http://localhost/api/admin/export?group=unknown"))).status).toBe(400);
     expect(mocks.serviceClient).not.toHaveBeenCalled();
   });
+
+  it("rejects invalid formats before reading participant data", async () => {
+    expect((await GET(new NextRequest("http://localhost/api/admin/export?format=xml"))).status).toBe(400);
+    expect(mocks.serviceClient).not.toHaveBeenCalled();
+  });
+
+  it("returns a PDF for the selected group", async () => {
+    const response = await GET(new NextRequest("http://localhost/api/admin/export?group=outsiders&format=pdf"));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("application/pdf");
+    expect(response.headers.get("Content-Disposition")).toContain("registrations.pdf");
+    expect(Buffer.from(await response.arrayBuffer()).subarray(0, 5).toString()).toBe("%PDF-");
+    expect(mocks.tables).toEqual(["registrations"]);
+  });
 });

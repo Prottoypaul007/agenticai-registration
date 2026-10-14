@@ -49,7 +49,7 @@ const tabCopy: Record<Tab, { title: string; description: string }> = {
   present: { title: "Present students", description: "See everyone marked present from both registration groups." },
   teams: { title: "Contest teams", description: "Review team assignments and notification status." },
   mailbox: { title: "Mailbox", description: "Send individual email updates and resources to participants." },
-  export: { title: "Export registrations", description: "Download a CSV for both groups or either group separately." },
+  export: { title: "Export registrations", description: "Download a printable PDF roster or a detailed CSV." },
   settings: { title: "Event settings", description: "Manage registration availability, capacity, and payment details." }
 };
 
@@ -70,7 +70,7 @@ export function AdminDashboard({ email }: { email: string }) {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [exportGroup, setExportGroup] = useState<"all" | "outsiders" | "batch14">("all");
-  const [exporting, setExporting] = useState(false);
+  const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
   const router = useRouter();
   const loadStats = useCallback(async () => {
     const response = await fetch("/api/admin/stats", { cache: "no-store" });
@@ -120,10 +120,10 @@ export function AdminDashboard({ email }: { email: string }) {
     const client = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
     await client.auth.signOut(); router.refresh();
   }
-  async function downloadExport() {
-    setExporting(true); setMessage("");
+  async function downloadExport(format: "csv" | "pdf") {
+    setExporting(format); setMessage("");
     try {
-      const response = await fetch(`/api/admin/export?group=${exportGroup}`, { cache: "no-store" });
+      const response = await fetch(`/api/admin/export?group=${exportGroup}&format=${format}`, { cache: "no-store" });
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Unable to export registrations.");
@@ -131,7 +131,7 @@ export function AdminDashboard({ email }: { email: string }) {
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
-      link.download = `agentic-workshop-${exportGroup}-registrations.csv`;
+      link.download = `agentic-workshop-${exportGroup}-registrations.${format}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -140,7 +140,7 @@ export function AdminDashboard({ email }: { email: string }) {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to export registrations.");
     } finally {
-      setExporting(false);
+      setExporting(null);
     }
   }
   const chooseTab = (next: Tab) => { setTab(next); setMessage(""); setMenuOpen(false); };
@@ -199,7 +199,7 @@ export function AdminDashboard({ email }: { email: string }) {
     {tab === "checkin" && <CheckinScanner/>}
     {tab === "present" && <PresentList/>}
     {tab === "teams" && <ContestTeamManagement/>}
-    {tab === "export" && <div className="panel max-w-2xl rounded-2xl p-6 md:p-8"><h2 className="text-2xl font-semibold">Export registrations</h2><p className="mt-2 text-sm text-slate-400">Download a CSV file for Excel or Google Sheets. Batch 14 data is synced from the Google Sheet before it is exported.</p><label className="mt-6 block text-sm font-medium text-slate-200" htmlFor="export-group">Registrations to include</label><Select id="export-group" className="mt-2 w-full" value={exportGroup} onChange={e => setExportGroup(e.target.value as typeof exportGroup)}><option value="all">Outsiders and Batch 14</option><option value="outsiders">Outsiders only</option><option value="batch14">Batch 14 only</option></Select><Button className="mt-5" disabled={exporting} onClick={() => void downloadExport()}><ArrowDownToLine size={16}/>{exporting ? "Preparing CSV..." : "Download CSV"}</Button></div>}
+    {tab === "export" && <div className="panel max-w-2xl rounded-2xl p-6 md:p-8"><h2 className="text-2xl font-semibold">Export registrations</h2><p className="mt-2 text-sm text-slate-400">Choose a group, then download a printable PDF roster or a detailed CSV for Excel and Google Sheets. Batch 14 data is synced before export.</p><label className="mt-6 block text-sm font-medium text-slate-200" htmlFor="export-group">Registrations to include</label><Select id="export-group" className="mt-2 w-full" value={exportGroup} onChange={e => setExportGroup(e.target.value as typeof exportGroup)}><option value="all">Outsiders and Batch 14</option><option value="outsiders">Outsiders only</option><option value="batch14">Batch 14 only</option></Select><div className="mt-5 flex flex-wrap gap-3"><Button disabled={Boolean(exporting)} onClick={() => void downloadExport("pdf")}><ArrowDownToLine size={16}/>{exporting === "pdf" ? "Preparing PDF..." : "Download PDF"}</Button><Button variant="outline" disabled={Boolean(exporting)} onClick={() => void downloadExport("csv")}><ArrowDownToLine size={16}/>{exporting === "csv" ? "Preparing CSV..." : "Download CSV"}</Button></div><p className="mt-4 text-xs leading-5 text-slate-500">The PDF lists names, contact details, registration references, and status. The CSV includes the full registration and payment fields. Keep exported files private.</p></div>}
     {tab === "settings" && settings && <div className="panel mb-5 max-w-3xl rounded-2xl border border-amber-400/25 p-6"><label className="flex items-start gap-3 text-sm text-white"><input type="checkbox" className="mt-1 h-4 w-4 accent-cyan-400" checked={settings.outsider_registration_enabled} onChange={event => setSettings({ ...settings, outsider_registration_enabled: event.target.checked })}/><span><strong>Open remaining seats to outside registrations</strong><span className="mt-1 block text-slate-400">Both groups count toward the 45-registration website closing threshold. The Batch 14 Google Form can continue receiving responses. Save settings below after changing this.</span></span></label></div>}
     {tab === "settings" && (settings ? <div className="panel max-w-3xl rounded-2xl p-7 md:p-9"><h2 className="text-xl font-semibold">Event settings</h2><p className="mt-2 text-sm text-slate-400">Times use Bangladesh time (UTC+6). Registration stays unavailable until at least one payment number is entered.</p><div className="mt-7 grid gap-5 sm:grid-cols-2"><label className="text-sm text-slate-300">Registration opens<Input className="mt-2" type="datetime-local" value={localValue(settings.registration_opens_at)} onChange={e => setSettings({ ...settings, registration_opens_at: isoValue(e.target.value) })}/></label><label className="text-sm text-slate-300">Registration closes<Input className="mt-2" type="datetime-local" value={localValue(settings.registration_closes_at)} onChange={e => setSettings({ ...settings, registration_closes_at: isoValue(e.target.value) })}/></label><label className="text-sm text-slate-300">Capacity (blank for unlimited)<Input className="mt-2" type="number" min="1" value={settings.capacity ?? ""} onChange={e => setSettings({ ...settings, capacity: e.target.value ? Number(e.target.value) : null })}/></label><label className="text-sm text-slate-300">Event time<Input className="mt-2" value={settings.event_time} onChange={e => setSettings({ ...settings, event_time: e.target.value })}/></label><label className="text-sm text-slate-300 sm:col-span-2">Venue<Input className="mt-2" value={settings.venue} onChange={e => setSettings({ ...settings, venue: e.target.value })}/></label><label className="text-sm text-slate-300 sm:col-span-2">bKash number<Input className="mt-2" type="tel" placeholder="01XXXXXXXXX" value={settings.bkash_merchant_number ?? ""} onChange={e => setSettings({ ...settings, bkash_merchant_number: e.target.value || null })}/><span className="mt-2 block text-xs text-slate-500">Participants can pay to this number and enter their transaction ID. Verify payments in the matching account records.</span></label></div><div className="mt-6"><PaymentNumberSettings settings={settings} onChange={setSettings}/></div><div className="mt-7 space-y-4 border-t border-white/10 pt-6">{[["approval_required","Require admin approval after payment verification"],["allow_single_day","Allow single-day registration"],["require_iit_student_id","Require student ID for IIT students"]].map(([key,label]) => <label key={key} className="flex items-center gap-3 text-sm text-slate-300"><input type="checkbox" className="h-4 w-4 accent-cyan-400" checked={Boolean(settings[key as keyof EventSettings])} onChange={e => setSettings({ ...settings, [key]: e.target.checked })}/>{label}</label>)}</div><Button className="mt-8" disabled={busy} onClick={saveSettings}>Save settings</Button></div> : <p className="text-slate-400">Loading settings...</p>)}
     {selected && <div role="dialog" aria-modal="true" aria-label="Participant details" className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" onClick={() => setSelected(null)}><div className="panel max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl p-6 md:p-8" onClick={e => e.stopPropagation()}><div className="flex items-start justify-between"><div><h2 className="text-xl font-semibold">{selected.full_name}</h2><p className="mt-1 text-sm text-slate-400">{selected.email}</p></div><button aria-label="Close details" onClick={() => setSelected(null)}><X/></button></div><dl className="mt-6 grid gap-4 sm:grid-cols-2">{Object.entries(selected).filter(([key]) => !["id","full_name","email","updated_at"].includes(key)).map(([key,value]) => <div key={key} className="border-b border-white/10 pb-3"><dt className="text-xs text-slate-500 capitalize">{key.replaceAll("_", " ")}</dt><dd className="mt-1 break-words text-sm text-slate-200">{key.endsWith("_at") && value ? date(String(value)) : Array.isArray(value) ? value.join(", ") : String(value ?? "—")}</dd></div>)}</dl>

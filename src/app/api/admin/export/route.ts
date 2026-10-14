@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminUser, serviceClient } from "@/lib/supabase";
 import { syncBatch14Registrations } from "@/lib/batch14-sync";
 import { buildRegistrationCsv, type ExportGroup } from "@/lib/registration-export";
+import { buildRegistrationPdf } from "@/lib/registration-pdf";
 
 async function allRows(table: "registrations" | "batch14_registrations") {
   const client = serviceClient();
@@ -19,8 +20,11 @@ export async function GET(request: NextRequest) {
   const admin = await adminUser();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const group = (request.nextUrl.searchParams.get("group") || "all") as ExportGroup;
+  const format = request.nextUrl.searchParams.get("format") || "csv";
   if (!["all", "outsiders", "batch14"].includes(group))
     return NextResponse.json({ error: "Choose a valid registration group." }, { status: 400 });
+  if (!["csv", "pdf"].includes(format))
+    return NextResponse.json({ error: "Choose CSV or PDF format." }, { status: 400 });
 
   try {
     if (group !== "outsiders") await syncBatch14Registrations(admin.id);
@@ -28,6 +32,14 @@ export async function GET(request: NextRequest) {
       group === "batch14" ? Promise.resolve([]) : allRows("registrations"),
       group === "outsiders" ? Promise.resolve([]) : allRows("batch14_registrations")
     ]);
+    if (format === "pdf") {
+      const pdf = await buildRegistrationPdf(outsiders, batch14, group);
+      return new NextResponse(Buffer.from(pdf), { headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="agentic-workshop-${group}-registrations.pdf"`,
+        "Cache-Control": "no-store"
+      } });
+    }
     const csv = buildRegistrationCsv(outsiders, batch14);
     return new NextResponse(csv, { headers: {
       "Content-Type": "text/csv; charset=utf-8",
