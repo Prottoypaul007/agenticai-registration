@@ -1,7 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { formDetails, formKeys, type FormKey, type FormSchedule } from "@/lib/feedback";
+import { formDetails } from "@/lib/feedback";
 
 type Count = { label: string; count: number };
 type Rating = { average: number | null; distribution: Count[] };
@@ -18,8 +17,6 @@ const ratingLabels: Record<string, string> = {
   overall_quality: "Overall satisfaction (quality)", clarity: "Concept clarity", relevance: "Content relevance",
   examples: "Examples and demonstrations", confidence: "Workshop-specific confidence"
 };
-const toLocal = (value: string | null) => value ? new Date(new Date(value).getTime() + 6 * 3600000).toISOString().slice(0, 16) : "";
-const toIso = (value: string) => value ? new Date(`${value}:00+06:00`).toISOString() : null;
 
 function Bars({ items }: { items: Count[] }) {
   const max = Math.max(1, ...items.map(item => item.count));
@@ -31,46 +28,19 @@ function Bars({ items }: { items: Count[] }) {
 }
 
 export function AdminFeedback() {
-  const [forms, setForms] = useState<FormSchedule[]>([]);
   const [results, setResults] = useState<Results | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const load = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/feedback", { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) { setMessage(data.error || "Unable to load feedback results."); return; }
-      setForms(data.forms); setResults(data.results);
+      setResults(data.results);
     } catch { setMessage("Unable to connect to feedback results. Please try again."); }
   }, []);
   useEffect(() => { void load(); }, [load]);
-  const change = (key: FormKey, field: "opens_at" | "closes_at" | "enabled", value: string | boolean | null) =>
-    setForms(current => current.map(form => form.key === key ? { ...form, [field]: value } : form));
-  async function save(form: FormSchedule) {
-    setBusy(form.key); setMessage("");
-    try {
-      const response = await fetch("/api/admin/feedback", { method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form) });
-      const data = await response.json();
-      setMessage(response.ok ? "Feedback schedule saved." : data.error || "Unable to save schedule.");
-      if (response.ok) await load();
-    } catch { setMessage("Unable to connect. Please try again."); }
-    finally { setBusy(null); }
-  }
   return <div className="space-y-6">
     {message && <p role="status" className="rounded-xl border border-cyan-400/25 bg-cyan-400/8 p-4 text-sm text-cyan-100">{message}</p>}
-    <section className="panel rounded-2xl p-5 md:p-7"><h3 className="text-xl font-semibold">Form availability</h3><p className="mt-2 text-sm text-slate-400">Times use Bangladesh time (UTC+6). Workshop feedback cannot open before its workshop date.</p>
-      <div className="mt-5 grid gap-4 xl:grid-cols-3">{formKeys.map(key => {
-        const form = forms.find(item => item.key === key);
-        if (!form) return <p key={key} className="text-sm text-slate-500">{formDetails[key].title}: not configured</p>;
-        return <div key={key} className="rounded-xl border border-white/10 bg-white/3 p-4"><h4 className="font-semibold leading-6">{formDetails[key].title}</h4>
-          <label className="mt-4 block text-sm text-slate-300">Opens<input type="datetime-local" value={toLocal(form.opens_at)} onChange={event => change(key, "opens_at", event.target.value ? toIso(event.target.value)! : form.opens_at)} className="mt-1 block w-full rounded-lg border border-white/15 bg-slate-950/50 p-2 text-white"/></label>
-          <label className="mt-3 block text-sm text-slate-300">Closes (optional)<input type="datetime-local" value={toLocal(form.closes_at)} onChange={event => change(key, "closes_at", event.target.value ? toIso(event.target.value)! : null)} className="mt-1 block w-full rounded-lg border border-white/15 bg-slate-950/50 p-2 text-white"/></label>
-          <label className="mt-4 flex items-center gap-2 text-sm text-slate-200"><input type="checkbox" checked={form.enabled} onChange={event => change(key, "enabled", event.target.checked)} className="accent-cyan-400"/>Accept responses</label>
-          <Button type="button" size="sm" className="mt-4" disabled={Boolean(busy)} onClick={() => void save(form)}>{busy === key ? "Saving..." : "Save schedule"}</Button>
-        </div>;
-      })}</div>
-    </section>
     {results && <>
       <section className="panel rounded-2xl p-5 md:p-7"><h3 className="text-xl font-semibold">Pre-Workshop Background Survey</h3><p className="mt-2 text-sm text-cyan-200">{Number(results.background.total)} anonymous responses</p>
         <div className="mt-5 grid gap-4 md:grid-cols-2">{Object.entries(backgroundLabels).map(([key, label]) => <div key={key} className="rounded-xl border border-white/10 p-4"><h4 className="font-semibold">{label}</h4><Bars items={results.background[key] as Count[]}/></div>)}</div>

@@ -9,9 +9,22 @@ describe("admin feedback access", () => {
   beforeEach(() => { vi.clearAllMocks(); });
   it("never reads anonymous responses for an unauthenticated visitor", async () => {
     mocks.adminUser.mockResolvedValue(null);
-    expect((await GET()).status).toBe(401);
+    expect((await GET(new NextRequest("http://localhost/api/admin/feedback"))).status).toBe(401);
     expect((await PUT(new NextRequest("http://localhost/api/admin/feedback", { method: "PUT", body: "{}" }))).status).toBe(401);
     expect(mocks.serviceClient).not.toHaveBeenCalled();
+  });
+  it("loads form availability without reading anonymous responses", async () => {
+    mocks.adminUser.mockResolvedValue({ id: "admin" });
+    const forms = [{ key: "pre-workshop", opens_at: "2026-10-01T00:00:00+06:00", closes_at: null, enabled: true }];
+    const select = vi.fn().mockResolvedValue({ data: forms, error: null });
+    const from = vi.fn().mockReturnValue({ select });
+    mocks.serviceClient.mockReturnValue({ from });
+    const response = await GET(new NextRequest("http://localhost/api/admin/feedback?view=schedules"));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ forms });
+    expect(from).toHaveBeenCalledExactlyOnceWith("feedback_forms");
+    expect(select).toHaveBeenCalledExactlyOnceWith("key,opens_at,closes_at,enabled");
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
   it("rejects a workshop schedule before the workshop date", async () => {
     mocks.adminUser.mockResolvedValue({ id: "admin" });

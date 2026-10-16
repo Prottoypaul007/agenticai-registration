@@ -13,9 +13,14 @@ async function rows(table: "background_survey_responses" | "workshop_feedback_re
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   if (!await adminUser()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
+    if (request.nextUrl.searchParams.get("view") === "schedules") {
+      const { data, error } = await serviceClient().from("feedback_forms").select("key,opens_at,closes_at,enabled");
+      if (error) throw new Error("Unable to load schedules.");
+      return NextResponse.json({ forms: data }, { headers: { "Cache-Control": "no-store" } });
+    }
     const [{ data: forms, error }, background, workshops] = await Promise.all([
       serviceClient().from("feedback_forms").select("key,opens_at,closes_at,enabled"),
       rows("background_survey_responses", "academic_discipline,software_credits,ai_use_frequency,ai_tools,ai_activities,ai_coursework,agentic_coursework,agentic_familiarity"),
