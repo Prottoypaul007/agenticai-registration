@@ -71,7 +71,7 @@ export function AdminDashboard({ email }: { email: string }) {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [exportGroup, setExportGroup] = useState<"all" | "outsiders" | "batch14">("all");
-  const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
+  const [exporting, setExporting] = useState<string | null>(null);
   const router = useRouter();
   const loadStats = useCallback(async () => {
     const response = await fetch("/api/admin/stats", { cache: "no-store" });
@@ -124,10 +124,13 @@ export function AdminDashboard({ email }: { email: string }) {
     const client = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
     await client.auth.signOut(); router.refresh();
   }
-  async function downloadExport(format: "csv" | "pdf") {
-    setExporting(format); setMessage("");
+  async function downloadExport(format: "csv" | "pdf", day?: 1 | 2, sheet?: "attendance" | "honorarium") {
+    const exportKey = format === "csv" ? "csv" : `day${day}-${sheet}`;
+    setExporting(exportKey); setMessage("");
     try {
-      const response = await fetch(`/api/admin/export?group=${exportGroup}&format=${format}`, { cache: "no-store" });
+      const params = new URLSearchParams({ group: exportGroup, format });
+      if (format === "pdf" && day && sheet) { params.set("day", String(day)); params.set("sheet", sheet); }
+      const response = await fetch(`/api/admin/export?${params}`, { cache: "no-store" });
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Unable to export registrations.");
@@ -135,7 +138,7 @@ export function AdminDashboard({ email }: { email: string }) {
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
-      link.download = format === "pdf" ? `agentic-workshop-${exportGroup}-daily-sheets.pdf`
+      link.download = format === "pdf" ? `agentic-workshop-day${day}-${sheet}-${exportGroup}.pdf`
         : `agentic-workshop-${exportGroup}-registrations.csv`;
       document.body.appendChild(link);
       link.click();
@@ -205,7 +208,18 @@ export function AdminDashboard({ email }: { email: string }) {
     {tab === "checkin" && <CheckinScanner/>}
     {tab === "present" && <PresentList/>}
     {tab === "teams" && <ContestTeamManagement/>}
-    {tab === "export" && <div className="panel max-w-2xl rounded-2xl p-6 md:p-8"><h2 className="text-2xl font-semibold">Export registrations</h2><p className="mt-2 text-sm text-slate-400">Choose a group, then download Bengali attendance and honorarium sheets for each workshop day or a detailed CSV. Batch 14 data is synced before export.</p><label className="mt-6 block text-sm font-medium text-slate-200" htmlFor="export-group">Registrations to include</label><Select id="export-group" className="mt-2 w-full" value={exportGroup} onChange={e => setExportGroup(e.target.value as typeof exportGroup)}><option value="all">Outsiders and Batch 14</option><option value="outsiders">Outsiders only</option><option value="batch14">Batch 14 only</option></Select><div className="mt-5 flex flex-wrap gap-3"><Button disabled={Boolean(exporting)} onClick={() => void downloadExport("pdf")}><ArrowDownToLine size={16}/>{exporting === "pdf" ? "Preparing PDF..." : "Download daily sheets PDF"}</Button><Button variant="outline" disabled={Boolean(exporting)} onClick={() => void downloadExport("csv")}><ArrowDownToLine size={16}/>{exporting === "csv" ? "Preparing CSV..." : "Download CSV"}</Button></div><p className="mt-4 text-xs leading-5 text-slate-500">The PDF includes only QR-sent participants: a Bengali attendance sheet and an honorarium sheet for each day. Address uses the institution name; honorarium shows gross BDT 1,200, tax BDT 280, net BDT 920, bank details, and a blank signature column. The CSV keeps the full registration and payment fields. Keep exported files private.</p></div>}
+    {tab === "export" && <div className="panel max-w-3xl rounded-2xl p-6 md:p-8">
+      <h2 className="text-2xl font-semibold">Export registrations</h2>
+      <p className="mt-2 text-sm text-slate-400">Download each day’s attendance and honorarium PDF separately. Batch 14 data is synced before export.</p>
+      <label className="mt-6 block text-sm font-medium text-slate-200" htmlFor="export-group">Registrations to include</label>
+      <Select id="export-group" className="mt-2 w-full" value={exportGroup} onChange={e => setExportGroup(e.target.value as typeof exportGroup)}><option value="all">Outsiders and Batch 14</option><option value="outsiders">Outsiders only</option><option value="batch14">Batch 14 only</option></Select>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">{([1, 2] as const).map(day => <div key={day} className="rounded-xl border border-white/10 bg-white/4 p-4">
+        <h3 className="font-semibold text-white">Day {day} · {day === 1 ? "17 October 2026" : "18 October 2026"}</h3>
+        <div className="mt-4 flex flex-wrap gap-2">{(["attendance", "honorarium"] as const).map(sheet => <Button key={sheet} variant={sheet === "attendance" ? "default" : "outline"} size="sm" disabled={Boolean(exporting)} onClick={() => void downloadExport("pdf", day, sheet)}><ArrowDownToLine size={15}/>{exporting === `day${day}-${sheet}` ? "Preparing PDF..." : sheet === "attendance" ? "Attendance PDF" : "Honorarium PDF"}</Button>)}</div>
+      </div>)}</div>
+      <Button className="mt-5" variant="outline" disabled={Boolean(exporting)} onClick={() => void downloadExport("csv")}><ArrowDownToLine size={16}/>{exporting === "csv" ? "Preparing CSV..." : "Download CSV"}</Button>
+      <p className="mt-4 text-xs leading-5 text-slate-500">PDFs include only QR-sent participants. Institution is used as the address; honorarium shows bank details, gross BDT 1,200, tax BDT 280, net BDT 920, and a blank signature column. Keep exported files private.</p>
+    </div>}
     {tab === "settings" && settings && <section className="panel mb-5 max-w-3xl rounded-2xl border border-cyan-400/25 p-6 md:p-8" aria-labelledby="website-registration-heading">
       <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="section-kicker">Website registration</p><h2 id="website-registration-heading" className="mt-2 text-xl font-semibold text-white">Turn outside registration on or off</h2><p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">This controls the website form and new submissions. Batch 14 students continue using their Google Form.</p></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${savedRegistrationEnabled ? "border-emerald-400/35 bg-emerald-400/10 text-emerald-200" : "border-amber-400/35 bg-amber-400/10 text-amber-200"}`}>Currently {savedRegistrationEnabled ? "open" : "closed"}</span></div>
       <fieldset className="mt-6 grid gap-3 sm:grid-cols-2" disabled={busy}><legend className="sr-only">Website registration status</legend>

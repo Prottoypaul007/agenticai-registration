@@ -11,6 +11,7 @@
     "test:concurrency": "node scripts/test-registration-concurrency.mjs"
   },
   "dependencies": {
+    "@abdalgolabs/ansi-unicode-converter": "^1.0.5",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/ssr": "^0.6.1",
