@@ -15,7 +15,7 @@ describe("admin feedback access", () => {
   });
   it("loads form availability without reading anonymous responses", async () => {
     mocks.adminUser.mockResolvedValue({ id: "admin" });
-    const forms = [{ key: "pre-workshop", opens_at: "2026-10-01T00:00:00+06:00", closes_at: null, enabled: true }];
+    const forms = [{ key: "workshop-1", opens_at: "2026-10-17T00:00:00+06:00", closes_at: null, enabled: true }];
     const select = vi.fn().mockResolvedValue({ data: forms, error: null });
     const from = vi.fn().mockReturnValue({ select });
     mocks.serviceClient.mockReturnValue({ from });
@@ -25,6 +25,28 @@ describe("admin feedback access", () => {
     expect(from).toHaveBeenCalledExactlyOnceWith("feedback_forms");
     expect(select).toHaveBeenCalledExactlyOnceWith("key,opens_at,closes_at,enabled");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
+  });
+  it("summarizes the new workshop questionnaire without mixing historical answers", async () => {
+    mocks.adminUser.mockResolvedValue({ id: "admin" });
+    const from = vi.fn((table: string) => ({
+      select: vi.fn(() => ({
+        range: vi.fn().mockResolvedValue({
+          data: table === "workshop_feedback_v2" ? [{ form_key: "workshop-1", learning_helpfulness: "Very helpful",
+            future_workshops: "Yes", improvements: "Clearer diagrams", course_support: "Yes",
+            academic_year: "3rd Year", course_suggestions: "Agent architecture" }] : [{ form_key: "workshop-2" }],
+          error: null
+        })
+      }))
+    }));
+    mocks.serviceClient.mockReturnValue({ from });
+    const response = await GET(new NextRequest("http://localhost/api/admin/feedback"));
+    expect(response.status).toBe(200);
+    const { results } = await response.json();
+    expect(results["workshop-1"].total).toBe(1);
+    expect(results["workshop-2"].total).toBe(0);
+    expect(results.historical["workshop-2"]).toBe(1);
+    expect(from.mock.calls.map(([table]) => table)).toEqual(expect.arrayContaining(["workshop_feedback_v2", "workshop_feedback_responses"]));
+    expect(from.mock.calls.map(([table]) => table)).not.toContain("background_survey_responses");
   });
   it("lets an admin change feedback opening independently of the workshop date", async () => {
     mocks.adminUser.mockResolvedValue({ id: "admin" });

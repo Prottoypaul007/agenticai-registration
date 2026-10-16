@@ -1,30 +1,30 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { formDetails } from "@/lib/feedback";
+import { formDetails, formKeys, type FormKey } from "@/lib/feedback";
 
 type Count = { label: string; count: number };
-type Rating = { average: number | null; distribution: Count[] };
-type WorkshopResults = { total: number; ratings: Record<string, Rating>; pacing: Count[];
-  comments: { most_valuable: string[]; improvements: string[] } };
-type Results = { background: Record<string, number | Count[]>; "workshop-1": WorkshopResults; "workshop-2": WorkshopResults };
-const backgroundLabels: Record<string, string> = {
-  academic_discipline: "Academic discipline", software_credits: "Software engineering credits",
-  ai_use_frequency: "AI tool usage frequency", ai_tools: "AI tools used", ai_activities: "AI-assisted activities",
-  ai_coursework: "AI-driven software engineering coursework", agentic_coursework: "Agentic systems coursework",
-  agentic_familiarity: "Agentic AI familiarity"
+type WorkshopResults = {
+  total: number;
+  helpfulness: Count[];
+  futureWorkshops: Count[];
+  improvements: string[];
+  course: { support: Count[]; supportPercent: number; academicYears: Count[]; suggestions: string[] };
 };
-const ratingLabels: Record<string, string> = {
-  overall_quality: "Overall satisfaction (quality)", clarity: "Concept clarity", relevance: "Content relevance",
-  examples: "Examples and demonstrations", confidence: "Workshop-specific confidence"
-};
+type Results = Record<FormKey, WorkshopResults> & { historical: Record<FormKey, number> };
 
 function Bars({ items }: { items: Count[] }) {
   const max = Math.max(1, ...items.map(item => item.count));
-  return <div className="mt-3 space-y-2">{items.map(item => <div key={item.label} className="grid grid-cols-[minmax(0,1fr)_4rem] items-center gap-3 text-xs sm:grid-cols-[minmax(130px,1fr)_minmax(100px,2fr)_3rem]">
-    <span className="truncate text-slate-300" title={item.label}>{item.label}</span>
-    <div className="hidden h-2 overflow-hidden rounded-full bg-white/8 sm:block"><div className="h-full rounded-full bg-cyan-400/80" style={{ width: `${item.count / max * 100}%` }}/></div>
+  return <div className="mt-4 space-y-3">{items.map(item => <div key={item.label} className="grid grid-cols-[minmax(0,1fr)_minmax(70px,1fr)_2rem] items-center gap-3 text-sm">
+    <span className="text-slate-300">{item.label}</span>
+    <div className="h-2 overflow-hidden rounded-full bg-white/8"><div className="h-full rounded-full bg-cyan-400/80" style={{ width: `${item.count / max * 100}%` }}/></div>
     <strong className="text-right text-white">{item.count}</strong>
   </div>)}</div>;
+}
+function Comments({ title, items }: { title: string; items: string[] }) {
+  return <div className="rounded-xl border border-white/10 p-4"><h4 className="font-semibold text-white">{title}</h4>
+    {items.length ? <ul className="mt-3 max-h-72 space-y-2 overflow-y-auto text-sm text-slate-300">{items.map((comment, index) => <li key={index} className="whitespace-pre-wrap break-words rounded-lg bg-white/5 p-3">{comment}</li>)}</ul>
+      : <p className="mt-3 text-sm text-slate-500">No written suggestions yet.</p>}
+  </div>;
 }
 
 export function AdminFeedback() {
@@ -42,18 +42,29 @@ export function AdminFeedback() {
   return <div className="space-y-6">
     {message && <p role="status" className="rounded-xl border border-cyan-400/25 bg-cyan-400/8 p-4 text-sm text-cyan-100">{message}</p>}
     {results && <>
-      <section className="panel rounded-2xl p-5 md:p-7"><h3 className="text-xl font-semibold">Pre-Workshop Background Survey</h3><p className="mt-2 text-sm text-cyan-200">{Number(results.background.total)} anonymous responses</p>
-        <div className="mt-5 grid gap-4 md:grid-cols-2">{Object.entries(backgroundLabels).map(([key, label]) => <div key={key} className="rounded-xl border border-white/10 p-4"><h4 className="font-semibold">{label}</h4><Bars items={results.background[key] as Count[]}/></div>)}</div>
+      <section className="panel rounded-2xl p-5 md:p-7"><h3 className="text-xl font-semibold">Workshop feedback overview</h3>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">Workshop 1 asks about foundational and architectural understanding. Workshop 2 asks about practical building, evaluation, and showcasing. Their helpfulness answers measure different learning goals.</p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">{formKeys.map((key, index) => <div key={key} className="rounded-xl border border-white/10 bg-white/3 p-4"><p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">Workshop {index + 1}</p><p className="mt-2 text-3xl font-semibold text-white">{results[key].total}</p><p className="text-sm text-slate-400">new questionnaire responses</p></div>)}</div>
       </section>
-      <section className="panel rounded-2xl p-5 md:p-7"><h3 className="text-xl font-semibold">Workshop comparison</h3><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[500px] text-left text-sm"><thead><tr className="border-b border-white/15 text-slate-400"><th className="py-3">Metric</th><th>Workshop 1</th><th>Workshop 2</th></tr></thead><tbody>
-        <tr className="border-b border-white/10"><th className="py-3 font-medium">Responses</th><td>{results["workshop-1"].total}</td><td>{results["workshop-2"].total}</td></tr>
-        {Object.entries(ratingLabels).map(([key, label]) => <tr key={key} className="border-b border-white/10"><th className="py-3 font-medium">{label}</th><td>{results["workshop-1"].ratings[key].average ?? "—"} / 5</td><td>{results["workshop-2"].ratings[key].average ?? "—"} / 5</td></tr>)}
-      </tbody></table></div></section>
-      {(["workshop-1", "workshop-2"] as const).map(key => <section key={key} className="panel rounded-2xl p-5 md:p-7"><h3 className="text-xl font-semibold">{formDetails[key].title}</h3><p className="mt-2 text-sm text-cyan-200">{results[key].total} anonymous responses</p>
-        <div className="mt-5 grid gap-4 md:grid-cols-2">{Object.entries(ratingLabels).map(([field, label]) => <div key={field} className="rounded-xl border border-white/10 p-4"><h4 className="font-semibold">{label} <span className="text-cyan-300">{results[key].ratings[field].average ?? "—"} / 5</span></h4><Bars items={results[key].ratings[field].distribution}/></div>)}
-          <div className="rounded-xl border border-white/10 p-4"><h4 className="font-semibold">Pacing</h4><Bars items={results[key].pacing}/></div></div>
-        <div className="mt-5 grid gap-4 md:grid-cols-2">{([ ["most_valuable", "Most valuable aspects"], ["improvements", "Suggestions for improvement"] ] as const).map(([field, label]) => <div key={field} className="rounded-xl border border-white/10 p-4"><h4 className="font-semibold">{label}</h4>{results[key].comments[field].length ? <ul className="mt-3 max-h-72 space-y-2 overflow-y-auto text-sm text-slate-300">{results[key].comments[field].map((comment, index) => <li key={index} className="rounded-lg bg-white/5 p-3 whitespace-pre-wrap break-words">{comment}</li>)}</ul> : <p className="mt-3 text-sm text-slate-500">No written responses yet.</p>}</div>)}</div>
-      </section>)}
+      {formKeys.map((key, index) => {
+        const result = results[key];
+        return <section key={key} className="panel rounded-2xl p-5 md:p-7">
+          <p className="section-kicker">Workshop {index + 1} analysis</p>
+          <h3 className="mt-2 text-xl font-semibold text-white">{formDetails[key].title}</h3>
+          <p className="mt-2 text-sm text-slate-400">{formDetails[key].focus}</p>
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-white/10 p-4"><h4 className="font-semibold text-white">{index === 0 ? "Helpfulness for fundamentals and architecture" : "Helpfulness for building, evaluation, and showcasing"}</h4><Bars items={result.helpfulness}/></div>
+            <div className="rounded-xl border border-white/10 p-4"><h4 className="font-semibold text-white">Interest in future {index === 0 ? "conceptual" : "hands-on"} workshops</h4><Bars items={result.futureWorkshops}/></div>
+          </div>
+          <div className="mt-4"><Comments title="Suggestions for workshop improvement" items={result.improvements}/></div>
+          <div className="mt-7 border-t border-white/10 pt-6"><h4 className="text-lg font-semibold text-white">Undergraduate course analysis</h4>
+            <p className="mt-2 text-sm text-slate-400"><strong className="text-2xl text-cyan-300">{result.course.supportPercent}%</strong> support introducing the course ({result.course.support.find(item => item.label === "Yes")?.count ?? 0} of {result.total} responses).</p>
+            <div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-xl border border-white/10 p-4"><h5 className="font-semibold">Course support</h5><Bars items={result.course.support}/></div><div className="rounded-xl border border-white/10 p-4"><h5 className="font-semibold">Preferred academic year</h5><p className="mt-1 text-xs text-slate-400">Among respondents who selected Yes.</p><Bars items={result.course.academicYears}/></div></div>
+            <div className="mt-4"><Comments title="Suggested course topics and activities" items={result.course.suggestions}/></div>
+          </div>
+        </section>;
+      })}
+      {(results.historical["workshop-1"] > 0 || results.historical["workshop-2"] > 0) && <p className="text-xs leading-5 text-slate-500">Earlier questionnaire responses remain stored separately: Workshop 1: {results.historical["workshop-1"]}; Workshop 2: {results.historical["workshop-2"]}. They are excluded from these new question totals.</p>}
     </>}
   </div>;
 }

@@ -3,7 +3,7 @@ import { adminUser, serviceClient } from "@/lib/supabase";
 import { scheduleSchema } from "@/lib/feedback";
 import { summarizeFeedback } from "@/lib/feedback-results";
 
-async function rows(table: "background_survey_responses" | "workshop_feedback_responses", fields: string) {
+async function rows(table: "workshop_feedback_v2" | "workshop_feedback_responses", fields: string) {
   const result: Record<string, unknown>[] = [];
   for (let offset = 0; ; offset += 1000) {
     const { data, error } = await serviceClient().from(table).select(fields).range(offset, offset + 999);
@@ -21,16 +21,14 @@ export async function GET(request: NextRequest) {
       if (error) throw new Error("Unable to load schedules.");
       return NextResponse.json({ forms: data }, { headers: { "Cache-Control": "no-store" } });
     }
-    const [{ data: forms, error }, background, workshops] = await Promise.all([
-      serviceClient().from("feedback_forms").select("key,opens_at,closes_at,enabled"),
-      rows("background_survey_responses", "academic_discipline,software_credits,ai_use_frequency,ai_tools,ai_activities,ai_coursework,agentic_coursework,agentic_familiarity"),
-      rows("workshop_feedback_responses", "form_key,overall_quality,clarity,relevance,examples,confidence,pacing,most_valuable,improvements")
+    const [workshops, historical] = await Promise.all([
+      rows("workshop_feedback_v2", "form_key,learning_helpfulness,future_workshops,improvements,course_support,academic_year,course_suggestions"),
+      rows("workshop_feedback_responses", "form_key")
     ]);
-    if (error) throw new Error("Unable to load forms.");
-    const results = summarizeFeedback(background, workshops.filter(row => row.form_key === "workshop-1"),
-      workshops.filter(row => row.form_key === "workshop-2"));
-    return NextResponse.json({ forms, results }, { headers: { "Cache-Control": "no-store" } });
-  } catch { return NextResponse.json({ error: "Feedback results are unavailable. Apply migration 018 if needed." }, { status: 503 }); }
+    const results = summarizeFeedback(workshops.filter(row => row.form_key === "workshop-1"),
+      workshops.filter(row => row.form_key === "workshop-2"), historical);
+    return NextResponse.json({ results }, { headers: { "Cache-Control": "no-store" } });
+  } catch { return NextResponse.json({ error: "Feedback results are unavailable. Apply migration 019 if needed." }, { status: 503 }); }
 }
 
 export async function PUT(request: NextRequest) {

@@ -1,52 +1,50 @@
 import { z } from "zod";
 
-export const formKeys = ["pre-workshop", "workshop-1", "workshop-2"] as const;
+export const formKeys = ["workshop-1", "workshop-2"] as const;
 export type FormKey = (typeof formKeys)[number];
-export const formDetails: Record<FormKey, { title: string; date: string; description: string }> = {
-  "pre-workshop": { title: "Pre-Workshop Background Survey", date: "Before the workshops", description: "Tell us about your academic background and experience with AI tools." },
-  "workshop-1": { title: "Workshop on Agentic Architecture: Next-Gen Software Development", date: "17 October 2026", description: "Share your experience of the first workshop." },
-  "workshop-2": { title: "Workshop on Agentic Systems in Action: Build, Evaluate, and Showcase", date: "18 October 2026", description: "Share your experience of the second workshop." }
+export const formDetails: Record<FormKey, { title: string; date: string; focus: string }> = {
+  "workshop-1": {
+    title: "Workshop on Agentic Architecture: Next-Gen Software Development",
+    date: "17 October 2026",
+    focus: "Foundations, AI agents, and agentic software architecture."
+  },
+  "workshop-2": {
+    title: "Workshop on Agentic Systems in Action: Build, Evaluate, and Showcase",
+    date: "18 October 2026",
+    focus: "Building agentic applications, integrating tools, evaluating behavior, and showcasing solutions."
+  }
 };
-export const disciplineOptions = ["Software Engineering", "Computer Science", "Computer Science and Engineering", "Other Engineering Discipline", "Other", "Prefer not to say"] as const;
-export const creditOptions = ["Below 10 credits", "10–19 credits", "20–29 credits", "30 credits or more", "Not sure"] as const;
-export const frequencyOptions = ["Never", "Rarely", "Sometimes", "Frequently", "Daily"] as const;
-export const toolOptions = ["ChatGPT", "Claude", "Gemini", "GitHub Copilot", "Cursor", "Other AI tools", "I have not used any AI tools"] as const;
-export const activityOptions = ["Learning or understanding programming concepts", "Code generation", "Debugging", "Software testing", "Documentation", "Software architecture or design", "Research and problem-solving", "Other", "I have not used AI tools"] as const;
-export const courseOptions = ["Yes", "Currently enrolled", "No", "Not sure"] as const;
-export const pacingOptions = ["Too slow", "Appropriate", "Too fast"] as const;
-export const ratingOptions = [1, 2, 3, 4, 5] as const;
-export const privacyNotice = "This survey is anonymous. We do not ask for your name, email, student ID, or registration information. Please do not include personal information in written responses.";
 
-const multiple = <T extends readonly [string, ...string[]]>(options: T, none: string) =>
-  z.array(z.enum(options)).min(1, "Choose at least one option.").max(options.length)
-    .refine(values => new Set(values).size === values.length, "Choose each option only once.")
-    .refine(values => !values.includes(none as T[number]) || values.length === 1, "The 'I have not used' option cannot be combined with other answers.");
-export const backgroundSchema = z.strictObject({
-  academic_discipline: z.enum(disciplineOptions),
-  software_credits: z.enum(creditOptions),
-  ai_use_frequency: z.enum(frequencyOptions),
-  ai_tools: multiple(toolOptions, "I have not used any AI tools"),
-  ai_activities: multiple(activityOptions, "I have not used AI tools"),
-  ai_coursework: z.enum(courseOptions),
-  agentic_coursework: z.enum(courseOptions),
-  agentic_familiarity: z.number().int().min(1).max(5)
-});
-const anonymousComment = z.string().trim().max(1000, "Keep your response under 1,000 characters.")
+export const helpfulnessOptions = ["Extremely helpful", "Very helpful", "Moderately helpful", "Slightly helpful", "Not helpful"] as const;
+export const futureWorkshopOptions = ["Yes", "Maybe", "No"] as const;
+export const courseSupportOptions = ["Yes", "No", "Not sure"] as const;
+export const academicYearOptions = ["1st Year", "2nd Year", "3rd Year", "4th Year"] as const;
+export const privacyNotice = "Your feedback is anonymous. No personal information is required. Please avoid including personal details in your written suggestions.";
+
+const suggestion = z.string().trim().max(500, "Keep your suggestion under 500 characters.")
   .refine(value => !/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|(?:\+?88)?01\d{9}|https?:\/\/\S+)/i.test(value),
-    "Please remove email addresses, phone numbers, and links from written responses.")
+    "Please remove email addresses, phone numbers, and links from written suggestions.")
   .refine(value => !/<[^>]*>/.test(value), "Please use plain text without HTML tags.");
+
 export const workshopSchema = z.strictObject({
-  overall_quality: z.number().int().min(1).max(5),
-  clarity: z.number().int().min(1).max(5),
-  relevance: z.number().int().min(1).max(5),
-  examples: z.number().int().min(1).max(5),
-  confidence: z.number().int().min(1).max(5),
-  pacing: z.enum(pacingOptions),
-  most_valuable: anonymousComment,
-  improvements: anonymousComment
+  learning_helpfulness: z.enum(helpfulnessOptions),
+  future_workshops: z.enum(futureWorkshopOptions),
+  improvements: suggestion.default(""),
+  course_support: z.enum(courseSupportOptions),
+  academic_year: z.enum(academicYearOptions).nullable().default(null),
+  course_suggestions: suggestion.default("")
+}).superRefine((value, context) => {
+  if (value.course_support === "Yes" && !value.academic_year)
+    context.addIssue({ code: "custom", path: ["academic_year"], message: "Choose an academic year." });
+  if (value.course_support !== "Yes" && value.academic_year)
+    context.addIssue({ code: "custom", path: ["academic_year"], message: "Academic year is only needed when you select Yes." });
 });
-export type BackgroundAnswers = z.infer<typeof backgroundSchema>;
 export type WorkshopAnswers = z.infer<typeof workshopSchema>;
+
+export const submissionSchema = z.strictObject({
+  request_id: z.uuid(),
+  answers: workshopSchema
+});
 
 export type FormSchedule = { key: FormKey; opens_at: string; closes_at: string | null; enabled: boolean };
 export function availability(form: FormSchedule, now = new Date()): "upcoming" | "open" | "closed" {
