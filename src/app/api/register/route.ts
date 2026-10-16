@@ -4,8 +4,10 @@ import { configured } from "@/lib/utils";
 import { getSettings, serviceClient } from "@/lib/supabase";
 import { signConfirmation } from "@/lib/confirmation";
 import { syncBatch14Registrations } from "@/lib/batch14-sync";
+import { REGISTRATION_CLOSED, REGISTRATION_CLOSED_MESSAGE } from "@/lib/registration-status";
 
 export async function POST(request: NextRequest) {
+  if (REGISTRATION_CLOSED) return NextResponse.json({ code: "registration_closed", error: REGISTRATION_CLOSED_MESSAGE }, { status: 403 });
   if (!configured()) return NextResponse.json({ error: "Registration is awaiting Supabase setup." }, { status: 503 });
   if (Number(request.headers.get("content-length") || 0) > 16000)
     return NextResponse.json({ error: "Submission is too large." }, { status: 413 });
