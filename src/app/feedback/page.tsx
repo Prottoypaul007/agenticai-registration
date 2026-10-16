@@ -21,9 +21,10 @@ export default async function FeedbackIndex() {
         <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300"><ClipboardList size={21}/></span>
         <p className="mt-6 text-xs font-semibold uppercase tracking-[.16em] text-cyan-300">{index === 0 ? "Background survey" : `Workshop ${index} feedback`}</p>
         <h2 className="mt-3 text-xl font-semibold leading-snug text-white">{detail.title}</h2>
-        <p className="mt-4 flex items-center gap-2 text-sm text-slate-300"><CalendarDays size={16}/>{detail.date}</p>
+        <p className="mt-4 flex items-center gap-2 text-sm text-slate-300"><CalendarDays size={16}/>{key === "pre-workshop" ? detail.date : `Workshop date: ${detail.date}`}</p>
+        {form && <p className="mt-2 text-sm text-slate-300">Feedback opens: {openingDate(form)}</p>}
         <p className="mt-4 text-sm leading-6 text-slate-400">{detail.description}</p>
-        <p className="mt-6 text-sm text-slate-300" role="status">{!form ? "This form is temporarily unavailable." : state === "upcoming" ? `Feedback will be available on ${openingDate(form)}.` : state === "closed" ? "Feedback collection has ended." : "Open for anonymous responses."}</p>
+        <p className="mt-6 text-sm text-slate-300" role="status">{!form ? "This form is temporarily unavailable." : !form.enabled ? "Feedback is currently closed." : state === "upcoming" ? `Feedback will be available on ${openingDate(form)}.` : state === "closed" ? "Feedback collection has ended." : "Open for anonymous responses."}</p>
         <div className="mt-auto pt-7">{state === "open" ? <Link href={`/feedback/${key}`} className="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300">{key === "pre-workshop" ? "Take Anonymous Survey" : "Give Anonymous Feedback"}<ArrowRight size={17}/></Link>
           : <span className="inline-flex rounded-xl border border-white/10 px-5 py-3 text-sm text-slate-500">Unavailable</span>}</div>
       </article>;

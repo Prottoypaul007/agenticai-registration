@@ -62,6 +62,4 @@ export const scheduleSchema = z.strictObject({
   key: z.enum(formKeys), opens_at: z.iso.datetime({ offset: true }),
   closes_at: z.iso.datetime({ offset: true }).nullable(), enabled: z.boolean()
 }).refine(value => !value.closes_at || new Date(value.closes_at) > new Date(value.opens_at),
-  { message: "Closing time must be after opening time.", path: ["closes_at"] })
-  .refine(value => value.key === "pre-workshop" || new Date(value.opens_at) >= new Date(value.key === "workshop-1" ? "2026-10-16T18:00:00Z" : "2026-10-17T18:00:00Z"),
-    { message: "Workshop feedback cannot open before its workshop date.", path: ["opens_at"] });
+  { message: "Closing time must be after opening time.", path: ["closes_at"] });

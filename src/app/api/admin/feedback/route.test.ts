@@ -26,13 +26,19 @@ describe("admin feedback access", () => {
     expect(select).toHaveBeenCalledExactlyOnceWith("key,opens_at,closes_at,enabled");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
-  it("rejects a workshop schedule before the workshop date", async () => {
+  it("lets an admin change feedback opening independently of the workshop date", async () => {
     mocks.adminUser.mockResolvedValue({ id: "admin" });
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn().mockReturnValue({ eq });
+    const from = vi.fn().mockReturnValue({ update });
+    mocks.serviceClient.mockReturnValue({ from });
     const response = await PUT(new NextRequest("http://localhost/api/admin/feedback", {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: "workshop-2", opens_at: "2026-10-17T00:00:00+06:00", closes_at: null, enabled: true })
     }));
-    expect(response.status).toBe(400);
-    expect(mocks.serviceClient).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(from).toHaveBeenCalledExactlyOnceWith("feedback_forms");
+    expect(update).toHaveBeenCalledExactlyOnceWith({ opens_at: "2026-10-17T00:00:00+06:00", closes_at: null, enabled: true });
+    expect(eq).toHaveBeenCalledExactlyOnceWith("key", "workshop-2");
   });
 });
