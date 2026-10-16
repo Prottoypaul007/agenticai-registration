@@ -13,6 +13,7 @@ import { PresentList } from "@/components/present-list";
 import { ContestTeamManagement } from "@/components/contest-team-management";
 import { StudentSearch } from "@/components/student-search";
 import { AdminMailbox } from "@/components/admin-mailbox";
+import { AdminFeedback } from "@/components/admin-feedback";
 import type { EventSettings } from "@/lib/validation";
 
 type Participant = Record<string, unknown> & {
@@ -31,12 +32,12 @@ const date = (value: string) => new Intl.DateTimeFormat("en-BD", { timeZone: "As
 const localValue = (value: string | null) => value ? new Date(new Date(value).getTime() + 6 * 3600000).toISOString().slice(0, 16) : "";
 const isoValue = (value: string) => value ? new Date(`${value}:00+06:00`).toISOString() : null;
 const money = (value: number) => `৳${Number(value || 0).toLocaleString("en-US")}`;
-type Tab = "overview" | "review" | "batch14" | "participants" | "search" | "mailbox" | "checkin" | "present" | "teams" | "export" | "settings";
+type Tab = "overview" | "review" | "batch14" | "participants" | "search" | "mailbox" | "checkin" | "present" | "teams" | "export" | "feedback" | "settings";
 const navigation = [
   { title: "Workspace", items: [["overview", BarChart3, "Overview"]] },
   { title: "Registration", items: [["review", ClipboardCheck, "Outside review"], ["batch14", Users, "Batch 14 review"], ["search", Search, "Search students"], ["participants", Users, "Outside records"]] },
   { title: "Workshop", items: [["checkin", QrCode, "Check-in scanner"], ["present", ClipboardCheck, "Present students"], ["teams", Users, "Contest teams"]] },
-  { title: "Communication & data", items: [["mailbox", Mail, "Mailbox"], ["export", ArrowDownToLine, "Export Word & CSV"]] },
+  { title: "Communication & data", items: [["mailbox", Mail, "Mailbox"], ["export", ArrowDownToLine, "Export Word & CSV"], ["feedback", BarChart3, "Feedback results"]] },
   { title: "Configuration", items: [["settings", Settings2, "Event settings"]] }
 ] as const;
 const tabCopy: Record<Tab, { title: string; description: string }> = {
@@ -50,6 +51,7 @@ const tabCopy: Record<Tab, { title: string; description: string }> = {
   teams: { title: "Contest teams", description: "Review team assignments and notification status." },
   mailbox: { title: "Mailbox", description: "Send individual email updates and resources to participants." },
   export: { title: "Export registrations", description: "Download Bengali daily attendance and honorarium sheets or a detailed CSV." },
+  feedback: { title: "Feedback results", description: "Manage anonymous form schedules and review aggregate responses." },
   settings: { title: "Event settings", description: "Manage registration availability, capacity, and payment details." }
 };
 
@@ -173,6 +175,7 @@ export function AdminDashboard({ email }: { email: string }) {
     {tab === "batch14" && <Batch14Dashboard onUpdated={() => { void loadStats(); }}/>}
     {tab === "search" && <StudentSearch/>}
     {tab === "mailbox" && <AdminMailbox/>}
+    {tab === "feedback" && <AdminFeedback/>}
     {tab === "overview" && (stats ? <div className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{statCards.map(({ label, value, detail, icon: Icon }) => <div key={label} className="panel rounded-2xl p-5"><div className="flex items-start justify-between gap-2"><p className="text-sm text-slate-300">{label}</p><span className="rounded-lg bg-cyan-400/10 p-2 text-cyan-300"><Icon size={18}/></span></div><p className="mt-3 text-3xl font-semibold tracking-tight text-white">{value}</p><p className="mt-1 text-xs text-slate-500">{detail}</p></div>)}</div>
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(300px,.75fr)]">
