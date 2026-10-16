@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminUser, getSettings, serviceClient } from "@/lib/supabase";
 import { syncBatch14Registrations } from "@/lib/batch14-sync";
 import { buildRegistrationCsv, type ExportGroup } from "@/lib/registration-export";
-import { buildRegistrationPdf, type PdfDay, type PdfSheet } from "@/lib/registration-pdf";
+import { buildRegistrationDocx, type WordDay, type WordSheet } from "@/lib/registration-docx";
 
 async function allRows(table: "registrations" | "batch14_registrations") {
   const client = serviceClient();
@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
   const sheet = request.nextUrl.searchParams.get("sheet");
   if (!["all", "outsiders", "batch14"].includes(group))
     return NextResponse.json({ error: "Choose a valid registration group." }, { status: 400 });
-  if (!["csv", "pdf"].includes(format))
-    return NextResponse.json({ error: "Choose CSV or PDF format." }, { status: 400 });
-  if (format === "pdf" && (!["1", "2"].includes(day || "") || !["attendance", "honorarium"].includes(sheet || "")))
+  if (!["csv", "docx"].includes(format))
+    return NextResponse.json({ error: "Choose CSV or Word format." }, { status: 400 });
+  if (format === "docx" && (!["1", "2"].includes(day || "") || !["attendance", "honorarium"].includes(sheet || "")))
     return NextResponse.json({ error: "Choose a workshop day and sheet type." }, { status: 400 });
 
   try {
@@ -36,12 +36,12 @@ export async function GET(request: NextRequest) {
       group === "batch14" ? Promise.resolve([]) : allRows("registrations"),
       group === "outsiders" ? Promise.resolve([]) : allRows("batch14_registrations")
     ]);
-    if (format === "pdf") {
+    if (format === "docx") {
       const settings = await getSettings();
-      const pdf = await buildRegistrationPdf(outsiders, batch14, group, settings.venue, Number(day) as PdfDay, sheet as PdfSheet);
-      return new NextResponse(Buffer.from(pdf), { headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="agentic-workshop-day${day}-${sheet}-${group}.pdf"`,
+      const docx = await buildRegistrationDocx(outsiders, batch14, group, settings.venue, Number(day) as WordDay, sheet as WordSheet);
+      return new NextResponse(new Uint8Array(docx), { headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": `attachment; filename="agentic-workshop-day${day}-${sheet}-${group}.docx"`,
         "Cache-Control": "no-store"
       } });
     }

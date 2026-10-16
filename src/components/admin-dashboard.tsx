@@ -36,7 +36,7 @@ const navigation = [
   { title: "Workspace", items: [["overview", BarChart3, "Overview"]] },
   { title: "Registration", items: [["review", ClipboardCheck, "Outside review"], ["batch14", Users, "Batch 14 review"], ["search", Search, "Search students"], ["participants", Users, "Outside records"]] },
   { title: "Workshop", items: [["checkin", QrCode, "Check-in scanner"], ["present", ClipboardCheck, "Present students"], ["teams", Users, "Contest teams"]] },
-  { title: "Communication & data", items: [["mailbox", Mail, "Mailbox"], ["export", ArrowDownToLine, "Export PDF & CSV"]] },
+  { title: "Communication & data", items: [["mailbox", Mail, "Mailbox"], ["export", ArrowDownToLine, "Export Word & CSV"]] },
   { title: "Configuration", items: [["settings", Settings2, "Event settings"]] }
 ] as const;
 const tabCopy: Record<Tab, { title: string; description: string }> = {
@@ -124,12 +124,12 @@ export function AdminDashboard({ email }: { email: string }) {
     const client = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
     await client.auth.signOut(); router.refresh();
   }
-  async function downloadExport(format: "csv" | "pdf", day?: 1 | 2, sheet?: "attendance" | "honorarium") {
+  async function downloadExport(format: "csv" | "docx", day?: 1 | 2, sheet?: "attendance" | "honorarium") {
     const exportKey = format === "csv" ? "csv" : `day${day}-${sheet}`;
     setExporting(exportKey); setMessage("");
     try {
       const params = new URLSearchParams({ group: exportGroup, format });
-      if (format === "pdf" && day && sheet) { params.set("day", String(day)); params.set("sheet", sheet); }
+      if (format === "docx" && day && sheet) { params.set("day", String(day)); params.set("sheet", sheet); }
       const response = await fetch(`/api/admin/export?${params}`, { cache: "no-store" });
       if (!response.ok) {
         const data = await response.json();
@@ -138,7 +138,7 @@ export function AdminDashboard({ email }: { email: string }) {
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
-      link.download = format === "pdf" ? `agentic-workshop-day${day}-${sheet}-${exportGroup}.pdf`
+      link.download = format === "docx" ? `agentic-workshop-day${day}-${sheet}-${exportGroup}.docx`
         : `agentic-workshop-${exportGroup}-registrations.csv`;
       document.body.appendChild(link);
       link.click();
@@ -181,7 +181,7 @@ export function AdminDashboard({ email }: { email: string }) {
           { key: "batch14", title: "Batch 14 review", detail: `${stats.batch14.pending} awaiting review`, icon: Users },
           { key: "checkin", title: "Check-in scanner", detail: "Record workshop attendance", icon: QrCode },
           { key: "mailbox", title: "Mailbox", detail: "Send updates and resources", icon: Mail },
-          { key: "export", title: "Export PDF & CSV", detail: "Download the participant roster", icon: ArrowDownToLine }
+          { key: "export", title: "Export Word & CSV", detail: "Download the participant roster", icon: ArrowDownToLine }
         ] as const).map(({ key, title, detail, icon: Icon }) => <button key={key} type="button" onClick={() => chooseTab(key)} className="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/3 p-4 text-left transition hover:border-cyan-400/35 hover:bg-cyan-400/5"><span className="rounded-lg bg-white/6 p-2 text-cyan-300"><Icon size={18}/></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-white">{title}</span><span className="block text-xs text-slate-400">{detail}</span></span><ArrowRight size={16} className="shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-cyan-300"/></button>)}</div></section>
         <section className="panel rounded-2xl p-5 sm:p-6"><p className="section-kicker">At a glance</p><h3 className="mt-1 text-lg font-semibold">Workshop records</h3><dl className="mt-4 divide-y divide-white/8 text-sm">{[
           ["Outside / Batch 14", `${stats.total} / ${stats.batch14.total}`],
@@ -210,15 +210,15 @@ export function AdminDashboard({ email }: { email: string }) {
     {tab === "teams" && <ContestTeamManagement/>}
     {tab === "export" && <div className="panel max-w-3xl rounded-2xl p-6 md:p-8">
       <h2 className="text-2xl font-semibold">Export registrations</h2>
-      <p className="mt-2 text-sm text-slate-400">Download each day’s attendance and honorarium PDF separately. Batch 14 data is synced before export.</p>
+      <p className="mt-2 text-sm text-slate-400">Download each day’s attendance and honorarium Word file separately. Batch 14 data is synced before export.</p>
       <label className="mt-6 block text-sm font-medium text-slate-200" htmlFor="export-group">Registrations to include</label>
       <Select id="export-group" className="mt-2 w-full" value={exportGroup} onChange={e => setExportGroup(e.target.value as typeof exportGroup)}><option value="all">Outsiders and Batch 14</option><option value="outsiders">Outsiders only</option><option value="batch14">Batch 14 only</option></Select>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">{([1, 2] as const).map(day => <div key={day} className="rounded-xl border border-white/10 bg-white/4 p-4">
         <h3 className="font-semibold text-white">Day {day} · {day === 1 ? "17 October 2026" : "18 October 2026"}</h3>
-        <div className="mt-4 flex flex-wrap gap-2">{(["attendance", "honorarium"] as const).map(sheet => <Button key={sheet} variant={sheet === "attendance" ? "default" : "outline"} size="sm" disabled={Boolean(exporting)} onClick={() => void downloadExport("pdf", day, sheet)}><ArrowDownToLine size={15}/>{exporting === `day${day}-${sheet}` ? "Preparing PDF..." : sheet === "attendance" ? "Attendance PDF" : "Honorarium PDF"}</Button>)}</div>
+        <div className="mt-4 flex flex-wrap gap-2">{(["attendance", "honorarium"] as const).map(sheet => <Button key={sheet} variant={sheet === "attendance" ? "default" : "outline"} size="sm" disabled={Boolean(exporting)} onClick={() => void downloadExport("docx", day, sheet)}><ArrowDownToLine size={15}/>{exporting === `day${day}-${sheet}` ? "Preparing Word..." : sheet === "attendance" ? "Attendance Word" : "Honorarium Word"}</Button>)}</div>
       </div>)}</div>
       <Button className="mt-5" variant="outline" disabled={Boolean(exporting)} onClick={() => void downloadExport("csv")}><ArrowDownToLine size={16}/>{exporting === "csv" ? "Preparing CSV..." : "Download CSV"}</Button>
-      <p className="mt-4 text-xs leading-5 text-slate-500">PDFs include only QR-sent participants. Institution is used as the address; honorarium shows bank details, gross BDT 1,200, tax BDT 280, net BDT 920, and a blank signature column. Keep exported files private.</p>
+      <p className="mt-4 text-xs leading-5 text-slate-500">Word sheets include only QR-sent participants, with separate institution and department columns. Honorarium shows bank details, gross BDT 1,200, tax BDT 280, net BDT 920, and a blank signature column. Keep exported files private.</p>
     </div>}
     {tab === "settings" && settings && <section className="panel mb-5 max-w-3xl rounded-2xl border border-cyan-400/25 p-6 md:p-8" aria-labelledby="website-registration-heading">
       <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="section-kicker">Website registration</p><h2 id="website-registration-heading" className="mt-2 text-xl font-semibold text-white">Turn outside registration on or off</h2><p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">This controls the website form and new submissions. Batch 14 students continue using their Google Form.</p></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${savedRegistrationEnabled ? "border-emerald-400/35 bg-emerald-400/10 text-emerald-200" : "border-amber-400/35 bg-amber-400/10 text-amber-200"}`}>Currently {savedRegistrationEnabled ? "open" : "closed"}</span></div>

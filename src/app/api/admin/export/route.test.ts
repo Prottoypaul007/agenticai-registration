@@ -59,18 +59,18 @@ describe("admin registration export", () => {
     expect(mocks.serviceClient).not.toHaveBeenCalled();
   });
 
-  it("requires a valid day and sheet for PDF downloads", async () => {
-    expect((await GET(new NextRequest("http://localhost/api/admin/export?format=pdf&day=3&sheet=attendance"))).status).toBe(400);
-    expect((await GET(new NextRequest("http://localhost/api/admin/export?format=pdf&day=1&sheet=other"))).status).toBe(400);
+  it("requires a valid day and sheet for Word downloads", async () => {
+    expect((await GET(new NextRequest("http://localhost/api/admin/export?format=docx&day=3&sheet=attendance"))).status).toBe(400);
+    expect((await GET(new NextRequest("http://localhost/api/admin/export?format=docx&day=1&sheet=other"))).status).toBe(400);
     expect(mocks.serviceClient).not.toHaveBeenCalled();
   });
 
-  it("returns a PDF for the selected group", async () => {
-    const response = await GET(new NextRequest("http://localhost/api/admin/export?group=outsiders&format=pdf&day=1&sheet=attendance"));
+  it("returns a Word file for the selected group", async () => {
+    const response = await GET(new NextRequest("http://localhost/api/admin/export?group=outsiders&format=docx&day=1&sheet=attendance"));
     expect(response.status).toBe(200);
-    expect(response.headers.get("Content-Type")).toBe("application/pdf");
-    expect(response.headers.get("Content-Disposition")).toContain("day1-attendance-outsiders.pdf");
-    expect(Buffer.from(await response.arrayBuffer()).subarray(0, 5).toString()).toBe("%PDF-");
+    expect(response.headers.get("Content-Type")).toBe("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    expect(response.headers.get("Content-Disposition")).toContain("day1-attendance-outsiders.docx");
+    expect(Buffer.from(await response.arrayBuffer()).subarray(0, 2).toString()).toBe("PK");
     expect(mocks.tables).toEqual(["registrations"]);
   });
 });
