@@ -79,7 +79,7 @@ export function RegistrationForm({ settings }: { settings: EventSettings }) {
           const fieldStep = stepFields.findIndex(fields => fields.includes(field));
           if (fieldStep !== step) setStep(fieldStep);
         }
-        if (result.code === "batch14_first") setRegistrationPaused(true);
+        if (result.code === "registration_closed") setRegistrationPaused(true);
         return;
       }
       router.push(`/registration-success?ref=${encodeURIComponent(result.reference)}&status=${encodeURIComponent(result.status)}&proof=${encodeURIComponent(result.proof)}`);

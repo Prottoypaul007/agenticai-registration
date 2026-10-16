@@ -4,10 +4,8 @@ import { configured } from "@/lib/utils";
 import { getSettings, serviceClient } from "@/lib/supabase";
 import { signConfirmation } from "@/lib/confirmation";
 import { syncBatch14Registrations } from "@/lib/batch14-sync";
-import { REGISTRATION_CLOSED, REGISTRATION_CLOSED_MESSAGE } from "@/lib/registration-status";
 
 export async function POST(request: NextRequest) {
-  if (REGISTRATION_CLOSED) return NextResponse.json({ code: "registration_closed", error: REGISTRATION_CLOSED_MESSAGE }, { status: 403 });
   if (!configured()) return NextResponse.json({ error: "Registration is awaiting Supabase setup." }, { status: 503 });
   if (Number(request.headers.get("content-length") || 0) > 16000)
     return NextResponse.json({ error: "Submission is too large." }, { status: 413 });
@@ -18,8 +16,8 @@ export async function POST(request: NextRequest) {
   try {
     const settings = await getSettings();
     if (!settings.outsider_registration_enabled) return NextResponse.json({
-      code: "batch14_first",
-      error: "Outside registration is paused while Batch 14 places are reserved. Please refresh the page for the current registration status."
+      code: "registration_closed",
+      error: "Sorry, website registration is currently closed. Please refresh the page for the current status."
     }, { status: 403 });
   } catch { return NextResponse.json({ error: "Unable to check registration availability. Please try again later." }, { status: 503 }); }
   try { await syncBatch14Registrations(); }
@@ -43,8 +41,8 @@ export async function POST(request: NextRequest) {
       try {
         const settings = await getSettings();
         if (!settings.outsider_registration_enabled) return NextResponse.json({
-          code: "batch14_first",
-          error: "Outside registration is paused while Batch 14 places are reserved. Please refresh the page for the current registration status."
+          code: "registration_closed",
+          error: "Sorry, website registration is currently closed. Please refresh the page for the current status."
         }, { status: 403 });
       } catch { /* Keep the general closed message if settings cannot be read. */ }
     }

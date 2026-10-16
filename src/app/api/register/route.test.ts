@@ -1,14 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const { rpc, getSettings, syncBatch14Registrations, registrationStatus } = vi.hoisted(() => ({ rpc: vi.fn(), getSettings: vi.fn(), syncBatch14Registrations: vi.fn(), registrationStatus: { closed: false } }));
+const { rpc, getSettings, syncBatch14Registrations } = vi.hoisted(() => ({ rpc: vi.fn(), getSettings: vi.fn(), syncBatch14Registrations: vi.fn() }));
 vi.mock("@/lib/utils", () => ({ configured: () => true }));
 vi.mock("@/lib/supabase", () => ({ serviceClient: () => ({ rpc }), getSettings }));
 vi.mock("@/lib/batch14-sync", () => ({ syncBatch14Registrations }));
-vi.mock("@/lib/registration-status", () => ({
-  get REGISTRATION_CLOSED() { return registrationStatus.closed; },
-  REGISTRATION_CLOSED_MESSAGE: "Registration has been closed."
-}));
 import { POST } from "./route";
 
 const payload = {
@@ -25,26 +21,26 @@ const payload = {
 };
 describe("public registration route", () => {
   beforeEach(() => {
-    registrationStatus.closed = false;
     rpc.mockReset(); getSettings.mockReset(); syncBatch14Registrations.mockReset();
     getSettings.mockResolvedValue({ outsider_registration_enabled: true });
     syncBatch14Registrations.mockResolvedValue({ read: 6, added: 0, skipped: 6 });
   });
-  it("rejects submissions after registration has closed without processing payments or syncing", async () => {
-    registrationStatus.closed = true;
-    const response = await POST(new NextRequest("http://localhost/api/register", { method: "POST", body: JSON.stringify(payload) }));
-    expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ code: "registration_closed", error: "Registration has been closed." });
-    expect(getSettings).not.toHaveBeenCalled();
-    expect(syncBatch14Registrations).not.toHaveBeenCalled();
-    expect(rpc).not.toHaveBeenCalled();
-  });
-  it("explains the Batch 14 pause to an already-open registration form", async () => {
-    rpc.mockResolvedValue({ data: { error: "registration_closed" }, error: null });
+  it("rejects submissions when the admin closes website registration without processing or syncing", async () => {
     getSettings.mockResolvedValue({ outsider_registration_enabled: false });
     const response = await POST(new NextRequest("http://localhost/api/register", { method: "POST", body: JSON.stringify(payload) }));
     expect(response.status).toBe(403);
-    expect(await response.json()).toMatchObject({ code: "batch14_first" });
+    expect(await response.json()).toMatchObject({ code: "registration_closed" });
+    expect(getSettings).toHaveBeenCalledOnce();
+    expect(syncBatch14Registrations).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+  it("closes a stale form if the database switch turns off before submission", async () => {
+    rpc.mockResolvedValue({ data: { error: "registration_closed" }, error: null });
+    getSettings.mockResolvedValueOnce({ outsider_registration_enabled: true })
+      .mockResolvedValueOnce({ outsider_registration_enabled: false });
+    const response = await POST(new NextRequest("http://localhost/api/register", { method: "POST", body: JSON.stringify(payload) }));
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ code: "registration_closed" });
   });
   it("returns a conflict when the atomic database function detects a duplicate", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "duplicate_registration" } });
