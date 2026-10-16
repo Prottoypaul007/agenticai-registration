@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminUser, serviceClient } from "@/lib/supabase";
+import { adminUser, getSettings, serviceClient } from "@/lib/supabase";
 import { syncBatch14Registrations } from "@/lib/batch14-sync";
 import { buildRegistrationCsv, type ExportGroup } from "@/lib/registration-export";
 import { buildRegistrationPdf } from "@/lib/registration-pdf";
@@ -33,10 +33,11 @@ export async function GET(request: NextRequest) {
       group === "outsiders" ? Promise.resolve([]) : allRows("batch14_registrations")
     ]);
     if (format === "pdf") {
-      const pdf = await buildRegistrationPdf(outsiders, batch14, group);
+      const settings = await getSettings();
+      const pdf = await buildRegistrationPdf(outsiders, batch14, group, settings.venue);
       return new NextResponse(Buffer.from(pdf), { headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="agentic-workshop-${group}-payment-signatures.pdf"`,
+        "Content-Disposition": `attachment; filename="agentic-workshop-${group}-daily-sheets.pdf"`,
         "Cache-Control": "no-store"
       } });
     }

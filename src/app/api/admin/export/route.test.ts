@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
-  adminUser: vi.fn(), serviceClient: vi.fn(), sync: vi.fn(), tables: [] as string[]
+  adminUser: vi.fn(), getSettings: vi.fn(), serviceClient: vi.fn(), sync: vi.fn(), tables: [] as string[]
 }));
-vi.mock("@/lib/supabase", () => ({ adminUser: mocks.adminUser, serviceClient: mocks.serviceClient }));
+vi.mock("@/lib/supabase", () => ({ adminUser: mocks.adminUser, getSettings: mocks.getSettings, serviceClient: mocks.serviceClient }));
 vi.mock("@/lib/batch14-sync", () => ({ syncBatch14Registrations: mocks.sync }));
 import { GET } from "./route";
 
@@ -13,6 +13,7 @@ describe("admin registration export", () => {
     vi.clearAllMocks();
     mocks.tables.length = 0;
     mocks.adminUser.mockResolvedValue({ id: "admin-id" });
+    mocks.getSettings.mockResolvedValue({ venue: "Institute of Information Technology (IIT), University of Dhaka" });
     mocks.sync.mockResolvedValue({ read: 1 });
     mocks.serviceClient.mockReturnValue({ from: (table: string) => {
       mocks.tables.push(table);
@@ -62,7 +63,7 @@ describe("admin registration export", () => {
     const response = await GET(new NextRequest("http://localhost/api/admin/export?group=outsiders&format=pdf"));
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("application/pdf");
-    expect(response.headers.get("Content-Disposition")).toContain("payment-signatures.pdf");
+    expect(response.headers.get("Content-Disposition")).toContain("daily-sheets.pdf");
     expect(Buffer.from(await response.arrayBuffer()).subarray(0, 5).toString()).toBe("%PDF-");
     expect(mocks.tables).toEqual(["registrations"]);
   });
