@@ -49,7 +49,7 @@ const tabCopy: Record<Tab, { title: string; description: string }> = {
   present: { title: "Present students", description: "See everyone marked present from both registration groups." },
   teams: { title: "Contest teams", description: "Review team assignments and notification status." },
   mailbox: { title: "Mailbox", description: "Send individual email updates and resources to participants." },
-  export: { title: "Export registrations", description: "Download a printable PDF roster or a detailed CSV." },
+  export: { title: "Export registrations", description: "Download a payment signature PDF or a detailed CSV." },
   settings: { title: "Event settings", description: "Manage registration availability, capacity, and payment details." }
 };
 
@@ -135,7 +135,8 @@ export function AdminDashboard({ email }: { email: string }) {
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
-      link.download = `agentic-workshop-${exportGroup}-registrations.${format}`;
+      link.download = format === "pdf" ? `agentic-workshop-${exportGroup}-payment-signatures.pdf`
+        : `agentic-workshop-${exportGroup}-registrations.csv`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -204,7 +205,7 @@ export function AdminDashboard({ email }: { email: string }) {
     {tab === "checkin" && <CheckinScanner/>}
     {tab === "present" && <PresentList/>}
     {tab === "teams" && <ContestTeamManagement/>}
-    {tab === "export" && <div className="panel max-w-2xl rounded-2xl p-6 md:p-8"><h2 className="text-2xl font-semibold">Export registrations</h2><p className="mt-2 text-sm text-slate-400">Choose a group, then download a printable PDF roster or a detailed CSV for Excel and Google Sheets. Batch 14 data is synced before export.</p><label className="mt-6 block text-sm font-medium text-slate-200" htmlFor="export-group">Registrations to include</label><Select id="export-group" className="mt-2 w-full" value={exportGroup} onChange={e => setExportGroup(e.target.value as typeof exportGroup)}><option value="all">Outsiders and Batch 14</option><option value="outsiders">Outsiders only</option><option value="batch14">Batch 14 only</option></Select><div className="mt-5 flex flex-wrap gap-3"><Button disabled={Boolean(exporting)} onClick={() => void downloadExport("pdf")}><ArrowDownToLine size={16}/>{exporting === "pdf" ? "Preparing PDF..." : "Download PDF"}</Button><Button variant="outline" disabled={Boolean(exporting)} onClick={() => void downloadExport("csv")}><ArrowDownToLine size={16}/>{exporting === "csv" ? "Preparing CSV..." : "Download CSV"}</Button></div><p className="mt-4 text-xs leading-5 text-slate-500">The PDF lists names, contact details, registration references, and status. The CSV includes the full registration and payment fields. Keep exported files private.</p></div>}
+    {tab === "export" && <div className="panel max-w-2xl rounded-2xl p-6 md:p-8"><h2 className="text-2xl font-semibold">Export registrations</h2><p className="mt-2 text-sm text-slate-400">Choose a group, then download a printable payment signature sheet or a detailed CSV for Excel and Google Sheets. Batch 14 data is synced before export.</p><label className="mt-6 block text-sm font-medium text-slate-200" htmlFor="export-group">Registrations to include</label><Select id="export-group" className="mt-2 w-full" value={exportGroup} onChange={e => setExportGroup(e.target.value as typeof exportGroup)}><option value="all">Outsiders and Batch 14</option><option value="outsiders">Outsiders only</option><option value="batch14">Batch 14 only</option></Select><div className="mt-5 flex flex-wrap gap-3"><Button disabled={Boolean(exporting)} onClick={() => void downloadExport("pdf")}><ArrowDownToLine size={16}/>{exporting === "pdf" ? "Preparing PDF..." : "Download signature PDF"}</Button><Button variant="outline" disabled={Boolean(exporting)} onClick={() => void downloadExport("csv")}><ArrowDownToLine size={16}/>{exporting === "csv" ? "Preparing CSV..." : "Download CSV"}</Button></div><p className="mt-4 text-xs leading-5 text-slate-500">The PDF includes only QR-sent participants, with name, phone, email, bank name, branch, account number, BDT 1,200 before VAT and tax, BDT 920 after VAT and tax, and a blank signature column. The CSV keeps the full registration and payment fields. Keep exported files private.</p></div>}
     {tab === "settings" && settings && <section className="panel mb-5 max-w-3xl rounded-2xl border border-cyan-400/25 p-6 md:p-8" aria-labelledby="website-registration-heading">
       <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="section-kicker">Website registration</p><h2 id="website-registration-heading" className="mt-2 text-xl font-semibold text-white">Turn outside registration on or off</h2><p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">This controls the website form and new submissions. Batch 14 students continue using their Google Form.</p></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${savedRegistrationEnabled ? "border-emerald-400/35 bg-emerald-400/10 text-emerald-200" : "border-amber-400/35 bg-amber-400/10 text-amber-200"}`}>Currently {savedRegistrationEnabled ? "open" : "closed"}</span></div>
       <fieldset className="mt-6 grid gap-3 sm:grid-cols-2" disabled={busy}><legend className="sr-only">Website registration status</legend>

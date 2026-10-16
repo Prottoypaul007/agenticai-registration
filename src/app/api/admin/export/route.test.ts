@@ -17,7 +17,7 @@ describe("admin registration export", () => {
     mocks.serviceClient.mockReturnValue({ from: (table: string) => {
       mocks.tables.push(table);
       return { select: () => ({ order: () => ({ range: async () => ({
-        data: table === "registrations" ? [{ reference: "AGNT-1" }] : [{ reference: "B14-1" }], error: null
+        data: table === "registrations" ? [{ reference: "AGNT-1", qr_status: "sent" }] : [{ reference: "B14-1", qr_status: "sent" }], error: null
       }) }) }) };
     } });
   });
@@ -62,7 +62,7 @@ describe("admin registration export", () => {
     const response = await GET(new NextRequest("http://localhost/api/admin/export?group=outsiders&format=pdf"));
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("application/pdf");
-    expect(response.headers.get("Content-Disposition")).toContain("registrations.pdf");
+    expect(response.headers.get("Content-Disposition")).toContain("payment-signatures.pdf");
     expect(Buffer.from(await response.arrayBuffer()).subarray(0, 5).toString()).toBe("%PDF-");
     expect(mocks.tables).toEqual(["registrations"]);
   });

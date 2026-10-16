@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       const pdf = await buildRegistrationPdf(outsiders, batch14, group);
       return new NextResponse(Buffer.from(pdf), { headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="agentic-workshop-${group}-registrations.pdf"`,
+        "Content-Disposition": `attachment; filename="agentic-workshop-${group}-payment-signatures.pdf"`,
         "Cache-Control": "no-store"
       } });
     }
