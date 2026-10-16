@@ -2,7 +2,7 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { unicodeToBijoy } from "@abdalgolabs/ansi-unicode-converter";
 import {
-  AlignmentType, BorderStyle, Document, ImageRun, Packer, PageOrientation,
+  AlignmentType, BorderStyle, Document, HeightRule, ImageRun, Packer, PageOrientation,
   Paragraph, Table, TableCell, TableLayoutType, TableRow, TextRun, VerticalAlign,
   WidthType, type FileChild
 } from "docx";
@@ -87,7 +87,7 @@ export async function buildRegistrationDocx(outsiders: Registration[], batch14: 
       .filter(Boolean).join("\n");
     const entries = sheet === "attendance" ? [...common, ""] :
       [...common, bank, "১,২০০", "২৮০", "৯২০", ""];
-    tableRows.push(new TableRow({ cantSplit: true,
+    tableRows.push(new TableRow({ cantSplit: true, height: { value: sheet === "attendance" ? 680 : 800, rule: HeightRule.ATLEAST },
       children: entries.map((entry, column) => cell(entry.replaceAll("\n", ", "), widths[column], false,
         column === 0 || (sheet === "honorarium" && column >= 7 && column <= 9) ? AlignmentType.CENTER : AlignmentType.LEFT)) }));
   });
@@ -133,7 +133,8 @@ export async function buildRegistrationDocx(outsiders: Registration[], batch14: 
     title: `${dayInfo.title} — ${sheet}`,
     creator: "Agentic AI Workshop Administration",
     fonts: [{ name: "SutonnyMJ", data: font }],
-    sections: [{ properties: { page: { size: { width: 16838, height: 11906, orientation: PageOrientation.LANDSCAPE },
+    // docx swaps width and height when orientation is landscape, so provide portrait A4 dimensions.
+    sections: [{ properties: { page: { size: { width: 11906, height: 16838, orientation: PageOrientation.LANDSCAPE },
       margin: { top: 560, right: 540, bottom: 560, left: 540 } } }, children }]
   });
   return Packer.toBuffer(document);

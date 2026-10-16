@@ -32,7 +32,9 @@ describe("editable Bengali Word registration sheets", () => {
       expect(xml).toContain("Software Engineering");
       expect(xml).toContain("Outside Student");
       expect(xml).toContain("Batch Student");
-      expect(xml).toContain("w:orient=\"landscape\"");
+      expect(xml).toMatch(/<w:pgSz[^>]*w:w="16838"[^>]*w:h="11906"[^>]*w:orient="landscape"/);
+      expect(xml).toContain(unicodeToBijoy("স্বাক্ষর"));
+      expect((xml.match(/<w:tc>/g) || []).length).toBeGreaterThanOrEqual((sheet === "attendance" ? 7 : 11) * 3);
       expect(zip.file("word/fontTable.xml")).not.toBeNull();
       expect(zip.file(/word\/fonts\/.*\.odttf$/).length).toBeGreaterThan(0);
       expect(zip.file(/word\/media\//).length).toBe(3);
