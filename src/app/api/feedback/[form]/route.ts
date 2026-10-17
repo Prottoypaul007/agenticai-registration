@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serviceClient } from "@/lib/supabase";
-import { formKeys, submissionSchema, type FormKey } from "@/lib/feedback";
+import { formKeys, submissionSchemaFor, type FormKey } from "@/lib/feedback";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ form: string }> }) {
   const { form } = await context.params;
@@ -9,7 +9,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ fo
     return NextResponse.json({ error: "This response is too large." }, { status: 413 });
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Please send a valid response." }, { status: 400 }); }
-  const parsed = submissionSchema.safeParse(body);
+  const parsed = submissionSchemaFor(form as FormKey).safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Please check all required answers and try again." }, { status: 400 });
   try {
     const { data, error } = await serviceClient().rpc("submit_workshop_feedback_v2", {

@@ -2,12 +2,14 @@
 import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  academicYearOptions, courseSupportOptions, futureWorkshopOptions, helpfulnessOptions,
-  privacyNotice, workshopSchema, type FormKey
+  academicYearOptions, courseSupportOptions, focusAreaOptions, futureWorkshopOptions,
+  helpfulnessOptions, outcomeConfidenceOptions, privacyNotice, workshopSchemaFor, type FormKey
 } from "@/lib/feedback";
 
 type Draft = {
   learning_helpfulness: string;
+  outcome_confidence: string;
+  focus_area: string;
   future_workshops: string;
   improvements: string;
   course_support: string;
@@ -15,12 +17,14 @@ type Draft = {
   course_suggestions: string;
 };
 const initial: Draft = {
-  learning_helpfulness: "", future_workshops: "", improvements: "",
+  learning_helpfulness: "", outcome_confidence: "", focus_area: "", future_workshops: "", improvements: "",
   course_support: "", academic_year: null, course_suggestions: ""
 };
 const questions = {
   "workshop-1": {
     helpfulness: "How helpful was this workshop in understanding the fundamentals and architecture of agentic software engineering?",
+    confidence: "How confident are you in sketching an agentic system architecture after Day 1?",
+    focus: "Which architecture topic would benefit most from a follow-up explanation?",
     future: "Would you like similar workshops to be organized in the future?",
     improvement: "What could be improved in future workshops on agentic software engineering fundamentals and architecture?",
     improvementHint: "Topics needing clearer explanations, more examples, session pacing, etc.",
@@ -28,6 +32,8 @@ const questions = {
   },
   "workshop-2": {
     helpfulness: "How helpful was this workshop in learning to build, evaluate, and showcase agentic software systems?",
+    confidence: "How confident are you in building and evaluating a small agentic application after Day 2?",
+    focus: "Which hands-on step would benefit most from more practice?",
     future: "Would you like similar hands-on workshops to be organized in the future?",
     improvement: "What could be improved in future hands-on workshops on agentic software development?",
     improvementHint: "More coding time, better demonstrations, development tools, practical exercises, etc.",
@@ -75,7 +81,7 @@ export function FeedbackForm({ form }: { form: FormKey }) {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (inFlight.current) return;
-    const parsed = workshopSchema.safeParse(answers);
+    const parsed = workshopSchemaFor(form).safeParse(answers);
     if (!parsed.success) {
       const nextErrors: Record<string, string> = {};
       for (const issue of parsed.error.issues) {
@@ -109,12 +115,14 @@ export function FeedbackForm({ form }: { form: FormKey }) {
     <section aria-labelledby="experience-heading" className="space-y-4">
       <div><p className="section-kicker">Section A</p><h2 id="experience-heading" className="mt-1 text-xl font-semibold">Workshop Experience &amp; Improvement</h2></div>
       {radio("learning_helpfulness", wording.helpfulness, helpfulnessOptions, 1)}
-      {radio("future_workshops", wording.future, futureWorkshopOptions, 2)}
-      {textQuestion("improvements", wording.improvement, wording.improvementHint, 3)}
+      {radio("outcome_confidence", wording.confidence, outcomeConfidenceOptions, 2)}
+      {radio("focus_area", wording.focus, focusAreaOptions[form], 3)}
+      {radio("future_workshops", wording.future, futureWorkshopOptions, 4)}
+      {textQuestion("improvements", wording.improvement, wording.improvementHint, 5)}
     </section>
     <section aria-labelledby="course-heading" className="space-y-4 pt-3">
       <div><p className="section-kicker">Section B</p><h2 id="course-heading" className="mt-1 text-xl font-semibold">Agentic Software Engineering Course</h2></div>
-      {radio("course_support", "Do you think Agentic Software Engineering should be introduced as an undergraduate course?", courseSupportOptions, 4)}
+      {radio("course_support", "Do you think Agentic Software Engineering should be introduced as an undergraduate course?", courseSupportOptions, 6)}
       {answers.course_support === "Yes" && <fieldset className="rounded-2xl border border-cyan-400/25 bg-cyan-400/5 p-5" aria-invalid={Boolean(errors.academic_year)}>
         <legend className="px-1 font-medium text-white">If yes, in which academic year should it be offered? <span className="text-cyan-300">*</span></legend>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">{academicYearOptions.map(year => <label key={year} className="flex cursor-pointer gap-3 rounded-xl border border-white/10 px-3 py-2.5 text-sm text-slate-300">
@@ -122,7 +130,7 @@ export function FeedbackForm({ form }: { form: FormKey }) {
         </label>)}</div>
         {errors.academic_year && <p role="alert" className="mt-2 text-sm text-rose-300">{errors.academic_year}</p>}
       </fieldset>}
-      {textQuestion("course_suggestions", "What topics, skills, or practical activities would you suggest including in an undergraduate Agentic Software Engineering course?", wording.courseHint, 5)}
+      {textQuestion("course_suggestions", "What topics, skills, or practical activities would you suggest including in an undergraduate Agentic Software Engineering course?", wording.courseHint, 7)}
     </section>
     {message && <p role="alert" className="rounded-xl border border-rose-400/30 bg-rose-400/10 p-4 text-sm text-rose-200">{message}</p>}
     <Button type="submit" disabled={saving} size="lg">{saving ? "Submitting..." : "Submit anonymously"}</Button>

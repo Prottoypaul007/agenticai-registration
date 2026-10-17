@@ -11,15 +11,21 @@ const request = (body: unknown) => new NextRequest("http://localhost/api/feedbac
 
 describe("public anonymous feedback endpoint", () => {
   beforeEach(() => { vi.clearAllMocks(); mocks.serviceClient.mockReturnValue({ rpc: mocks.rpc }); mocks.rpc.mockResolvedValue({ data: "saved", error: null }); });
-  const answers = { learning_helpfulness: "Very helpful", future_workshops: "Yes", improvements: "",
+  const answers = { learning_helpfulness: "Very helpful", outcome_confidence: "Somewhat confident",
+    focus_area: "Agentic architecture and workflows", future_workshops: "Yes", improvements: "",
     course_support: "Yes", academic_year: "3rd Year", course_suggestions: "Architectures" };
   const body = { request_id: "74882d94-1bda-40a4-b034-50a72930290c", answers };
   it("accepts both workshops independently without auth or identifying metadata", async () => {
     expect((await POST(request(body), context("workshop-1"))).status).toBe(201);
-    const second = { ...body, request_id: "f02e371d-f01d-4f7e-b89c-c7f99e244dc3" };
+    const secondAnswers = { ...answers, focus_area: "Testing and evaluating behavior" };
+    const second = { request_id: "f02e371d-f01d-4f7e-b89c-c7f99e244dc3", answers: secondAnswers };
     expect((await POST(request(second), context("workshop-2"))).status).toBe(201);
     expect(mocks.rpc).toHaveBeenNthCalledWith(1, "submit_workshop_feedback_v2", { p_form: "workshop-1", p_answers: answers, p_request_id: body.request_id });
-    expect(mocks.rpc).toHaveBeenNthCalledWith(2, "submit_workshop_feedback_v2", { p_form: "workshop-2", p_answers: answers, p_request_id: second.request_id });
+    expect(mocks.rpc).toHaveBeenNthCalledWith(2, "submit_workshop_feedback_v2", { p_form: "workshop-2", p_answers: secondAnswers, p_request_id: second.request_id });
+  });
+  it("rejects a Day 1 focus option submitted to Day 2", async () => {
+    expect((await POST(request(body), context("workshop-2"))).status).toBe(400);
+    expect(mocks.serviceClient).not.toHaveBeenCalled();
   });
   it("rejects identifiers and invalid answers before database access", async () => {
     const response = await POST(request({ ...body, answers: { ...answers, email: "a@example.com" } }), context("workshop-1"));

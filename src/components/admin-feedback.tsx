@@ -6,6 +6,9 @@ type Count = { label: string; count: number };
 type WorkshopResults = {
   total: number;
   helpfulness: Count[];
+  specificAnswers: number;
+  confidence: Count[];
+  focusAreas: Count[];
   futureWorkshops: Count[];
   improvements: string[];
   course: { support: Count[]; supportPercent: number; academicYears: Count[]; suggestions: string[] };
@@ -52,8 +55,11 @@ export function AdminFeedback() {
           <p className="section-kicker">Workshop {index + 1} analysis</p>
           <h3 className="mt-2 text-xl font-semibold text-white">{formDetails[key].title}</h3>
           <p className="mt-2 text-sm text-slate-400">{formDetails[key].focus}</p>
+          {result.specificAnswers < result.total && <p className="mt-2 text-xs text-slate-500">The two new day-specific questions have {result.specificAnswers} answers. Earlier responses remain in the other totals.</p>}
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
             <div className="rounded-xl border border-white/10 p-4"><h4 className="font-semibold text-white">{index === 0 ? "Helpfulness for fundamentals and architecture" : "Helpfulness for building, evaluation, and showcasing"}</h4><Bars items={result.helpfulness}/></div>
+            <div className="rounded-xl border border-white/10 p-4"><h4 className="font-semibold text-white">{index === 0 ? "Confidence in sketching an agentic architecture" : "Confidence in building and evaluating an agent"}</h4><Bars items={result.confidence}/></div>
+            <div className="rounded-xl border border-white/10 p-4"><h4 className="font-semibold text-white">{index === 0 ? "Topics needing more explanation" : "Hands-on steps needing more practice"}</h4><Bars items={result.focusAreas}/></div>
             <div className="rounded-xl border border-white/10 p-4"><h4 className="font-semibold text-white">Interest in future {index === 0 ? "conceptual" : "hands-on"} workshops</h4><Bars items={result.futureWorkshops}/></div>
           </div>
           <div className="mt-4"><Comments title="Suggestions for workshop improvement" items={result.improvements}/></div>

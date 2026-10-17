@@ -31,8 +31,10 @@ describe("admin feedback access", () => {
     const from = vi.fn((table: string) => ({
       select: vi.fn(() => ({
         range: vi.fn().mockResolvedValue({
-          data: table === "workshop_feedback_v2" ? [{ form_key: "workshop-1", learning_helpfulness: "Very helpful",
-            future_workshops: "Yes", improvements: "Clearer diagrams", course_support: "Yes",
+          data: table === "workshop_feedback_v2" ? [{ form_key: "workshop-1", response_version: 2,
+            learning_helpfulness: "Very helpful", outcome_confidence: "Somewhat confident",
+            focus_area: "Agentic architecture and workflows", future_workshops: "Yes",
+            improvements: "Clearer diagrams", course_support: "Yes",
             academic_year: "3rd Year", course_suggestions: "Agent architecture" }] : [{ form_key: "workshop-2" }],
           error: null
         })
@@ -43,6 +45,7 @@ describe("admin feedback access", () => {
     expect(response.status).toBe(200);
     const { results } = await response.json();
     expect(results["workshop-1"].total).toBe(1);
+    expect(results["workshop-1"].focusAreas.find((item: { label: string; count: number }) => item.label === "Agentic architecture and workflows")?.count).toBe(1);
     expect(results["workshop-2"].total).toBe(0);
     expect(results.historical["workshop-2"]).toBe(1);
     expect(from.mock.calls.map(([table]) => table)).toEqual(expect.arrayContaining(["workshop_feedback_v2", "workshop_feedback_responses"]));

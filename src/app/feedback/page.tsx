@@ -12,7 +12,7 @@ export default async function FeedbackIndex() {
   try { forms = await feedbackSchedules(); } catch { forms = []; }
   return <><Navigation registrationOpen={null}/><main className="site-container py-14 md:py-20">
     <div className="max-w-3xl"><p className="section-kicker">Workshop evaluation</p><h1 className="section-title mt-4">Feedback &amp; Evaluation</h1>
-      <p className="mt-5 leading-7 text-slate-300">Share what worked and what could improve. Each workshop has a short, anonymous form with five questions. Registration is not required.</p></div>
+      <p className="mt-5 leading-7 text-slate-300">Share what worked and what could improve. Each workshop has a short, anonymous form with seven questions tailored to its learning goals. Registration is not required.</p></div>
     <div className="mt-10 grid gap-5 lg:grid-cols-2">{formKeys.map((key, index) => {
       const form = forms.find(item => item.key === key);
       const state = form ? availability(form) : "closed";

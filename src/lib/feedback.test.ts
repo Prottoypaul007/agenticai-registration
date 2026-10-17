@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { availability, formKeys, openingDate, workshopSchema } from "./feedback";
+import { availability, formKeys, openingDate, workshopSchema, workshopSchemaFor } from "./feedback";
 
 const answers = {
-  learning_helpfulness: "Very helpful", future_workshops: "Maybe", improvements: "",
+  learning_helpfulness: "Very helpful", outcome_confidence: "Somewhat confident",
+  focus_area: "Agentic architecture and workflows", future_workshops: "Maybe", improvements: "",
   course_support: "Yes", academic_year: "3rd Year", course_suggestions: "Tool integration"
 };
 
@@ -10,14 +11,20 @@ describe("workshop feedback validation", () => {
   it("exposes exactly the two workshop forms", () => {
     expect(formKeys).toEqual(["workshop-1", "workshop-2"]);
   });
-  it("accepts five main answers and requires the year only for course supporters", () => {
+  it("accepts seven main answers and requires the year only for course supporters", () => {
     expect(workshopSchema.safeParse(answers).success).toBe(true);
     expect(workshopSchema.safeParse({ ...answers, academic_year: null }).success).toBe(false);
     expect(workshopSchema.safeParse({ ...answers, course_support: "No", academic_year: "3rd Year" }).success).toBe(false);
     expect(workshopSchema.safeParse({ ...answers, course_support: "No", academic_year: null }).success).toBe(true);
-    expect(workshopSchema.safeParse({ learning_helpfulness: "Very helpful", future_workshops: "Maybe", course_support: "No" }).success).toBe(true);
+    expect(workshopSchema.safeParse({ learning_helpfulness: "Very helpful", outcome_confidence: "Very confident",
+      focus_area: "Agent roles and planning", future_workshops: "Maybe", course_support: "No" }).success).toBe(true);
     expect(workshopSchema.safeParse({ ...answers, learning_helpfulness: "" }).success).toBe(false);
     expect(workshopSchema.safeParse({ ...answers, future_workshops: "" }).success).toBe(false);
+  });
+  it("requires a focus option from the correct workshop", () => {
+    expect(workshopSchemaFor("workshop-1").safeParse(answers).success).toBe(true);
+    expect(workshopSchemaFor("workshop-2").safeParse(answers).success).toBe(false);
+    expect(workshopSchemaFor("workshop-2").safeParse({ ...answers, focus_area: "Connecting tools and APIs" }).success).toBe(true);
   });
   it("rejects identifiers, long suggestions, and extra answer fields", () => {
     expect(workshopSchema.safeParse({ ...answers, improvements: "Contact me at student@example.com" }).success).toBe(false);

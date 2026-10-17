@@ -22,13 +22,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ forms: data }, { headers: { "Cache-Control": "no-store" } });
     }
     const [workshops, historical] = await Promise.all([
-      rows("workshop_feedback_v2", "form_key,learning_helpfulness,future_workshops,improvements,course_support,academic_year,course_suggestions"),
+      rows("workshop_feedback_v2", "form_key,response_version,learning_helpfulness,outcome_confidence,focus_area,future_workshops,improvements,course_support,academic_year,course_suggestions"),
       rows("workshop_feedback_responses", "form_key")
     ]);
     const results = summarizeFeedback(workshops.filter(row => row.form_key === "workshop-1"),
       workshops.filter(row => row.form_key === "workshop-2"), historical);
     return NextResponse.json({ results }, { headers: { "Cache-Control": "no-store" } });
-  } catch { return NextResponse.json({ error: "Feedback results are unavailable. Apply migration 019 if needed." }, { status: 503 }); }
+  } catch { return NextResponse.json({ error: "Feedback results are unavailable. Apply migration 020 if needed." }, { status: 503 }); }
 }
 
 export async function PUT(request: NextRequest) {
