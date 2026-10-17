@@ -50,8 +50,9 @@ export function FeedbackForm({ form }: { form: FormKey }) {
     setErrors(previous => ({ ...previous, [key]: "" }));
   }
   function radio(key: keyof Draft, title: string, options: readonly string[], number: number) {
-    return <fieldset className="rounded-2xl border border-white/10 bg-white/3 p-5" aria-invalid={Boolean(errors[key])} aria-describedby={errors[key] ? `${key}-error` : undefined}>
-      <legend className="px-1 font-semibold leading-6 text-white">{number}. {title} <span className="text-cyan-300">*</span></legend>
+    return <div className="rounded-2xl border border-white/10 bg-white/3 p-5">
+      <fieldset className="min-w-0" aria-invalid={Boolean(errors[key])} aria-describedby={errors[key] ? `${key}-error` : undefined}>
+      <legend className="w-full font-semibold leading-6 text-white">{number}. {title} <span className="text-cyan-300">*</span></legend>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">{options.map(option => <label key={option} className={`flex cursor-pointer gap-3 rounded-xl border px-3 py-2.5 text-sm ${answers[key] === option ? "border-cyan-400/60 bg-cyan-400/10 text-white" : "border-white/10 text-slate-300 hover:border-white/25"}`}>
         <input type="radio" name={key} value={option} checked={answers[key] === option} onChange={() => {
           set(key, option);
@@ -59,7 +60,8 @@ export function FeedbackForm({ form }: { form: FormKey }) {
         }} className="mt-0.5 accent-cyan-400"/><span>{option}</span>
       </label>)}</div>
       {errors[key] && <p id={`${key}-error`} role="alert" className="mt-2 text-sm text-rose-300">{errors[key]}</p>}
-    </fieldset>;
+      </fieldset>
+    </div>;
   }
   function textQuestion(key: "improvements" | "course_suggestions", title: string, placeholder: string, number: number) {
     return <div className="rounded-2xl border border-white/10 bg-white/3 p-5">
@@ -115,13 +117,15 @@ export function FeedbackForm({ form }: { form: FormKey }) {
     <section aria-labelledby="course-heading" className="space-y-4 pt-3">
       <div><p className="section-kicker">Section B</p><h2 id="course-heading" className="mt-1 text-xl font-semibold">Agentic Software Engineering Course</h2></div>
       {radio("course_support", "Do you think Agentic Software Engineering should be introduced as an undergraduate course?", courseSupportOptions, 4)}
-      {answers.course_support === "Yes" && <fieldset className="rounded-2xl border border-cyan-400/25 bg-cyan-400/5 p-5" aria-invalid={Boolean(errors.academic_year)}>
-        <legend className="px-1 font-medium text-white">If yes, in which academic year should it be offered? <span className="text-cyan-300">*</span></legend>
+      {answers.course_support === "Yes" && <div className="rounded-2xl border border-cyan-400/25 bg-cyan-400/5 p-5">
+        <fieldset className="min-w-0" aria-invalid={Boolean(errors.academic_year)}>
+        <legend className="w-full font-medium text-white">If yes, in which academic year should it be offered? <span className="text-cyan-300">*</span></legend>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">{academicYearOptions.map(year => <label key={year} className="flex cursor-pointer gap-3 rounded-xl border border-white/10 px-3 py-2.5 text-sm text-slate-300">
           <input type="radio" name="academic_year" value={year} checked={answers.academic_year === year} onChange={() => set("academic_year", year)} className="accent-cyan-400"/>{year}
         </label>)}</div>
         {errors.academic_year && <p role="alert" className="mt-2 text-sm text-rose-300">{errors.academic_year}</p>}
-      </fieldset>}
+        </fieldset>
+      </div>}
       {textQuestion("course_suggestions", "What topics, skills, or practical activities would you suggest including in an undergraduate Agentic Software Engineering course?", wording.courseHint, 5)}
     </section>
     {message && <p role="alert" className="rounded-xl border border-rose-400/30 bg-rose-400/10 p-4 text-sm text-rose-200">{message}</p>}
