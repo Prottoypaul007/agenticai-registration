@@ -4,9 +4,10 @@ import { loadFeedbackResults } from "@/lib/feedback-results-server";
 import { buildFeedbackPdf, type FeedbackExportScope } from "@/lib/feedback-pdf";
 
 export const runtime = "nodejs";
+const exportVersion = "standard-fonts-packaged-v1";
 
 export async function GET(request: NextRequest) {
-  if (!await adminUser()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!await adminUser()) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: { "X-Feedback-PDF-Version": exportVersion } });
   const scope = request.nextUrl.searchParams.get("form") ?? "all";
   if (!["all", "workshop-1", "workshop-2"].includes(scope))
     return NextResponse.json({ error: "Choose a valid feedback report." }, { status: 400 });

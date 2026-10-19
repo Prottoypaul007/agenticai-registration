@@ -11,7 +11,9 @@ describe("admin feedback PDF export", () => {
   beforeEach(() => { vi.clearAllMocks(); });
   it("does not expose anonymous answers to an unauthenticated visitor", async () => {
     mocks.adminUser.mockResolvedValue(null);
-    expect((await GET(new NextRequest("http://localhost/api/admin/feedback/export"))).status).toBe(401);
+    const response = await GET(new NextRequest("http://localhost/api/admin/feedback/export"));
+    expect(response.status).toBe(401);
+    expect(response.headers.get("X-Feedback-PDF-Version")).toBe("standard-fonts-packaged-v1");
     expect(mocks.loadFeedbackResults).not.toHaveBeenCalled();
   });
   it("rejects an invalid report selection before reading responses", async () => {
