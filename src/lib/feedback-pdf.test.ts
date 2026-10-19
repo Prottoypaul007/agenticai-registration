@@ -7,6 +7,7 @@ describe("feedback PDF export", () => {
   it("creates a report when a workshop has no responses", async () => {
     const pdf = await buildFeedbackPdf(summarizeFeedback([], []), "workshop-2");
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(pdf.toString("latin1")).not.toContain("Helvetica");
   });
   it("renders both anonymous workshop reports, including long comments", async () => {
     const first = Array.from({ length: 15 }, (_, index) => ({

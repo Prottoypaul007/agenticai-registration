@@ -17,8 +17,10 @@ const right = 547;
 const width = right - left;
 
 export async function buildFeedbackPdf(results: Results, scope: FeedbackExportScope): Promise<Buffer> {
-  const doc = new PDFDocument({ size: "A4", margins: { top: 48, bottom: 20, left, right: 48 }, bufferPages: true, autoFirstPage: false });
-  doc.registerFont("Report", gunzipSync(Buffer.from(HIND_FONT_GZIP_BASE64, "base64")));
+  const reportFont = gunzipSync(Buffer.from(HIND_FONT_GZIP_BASE64, "base64"));
+  // PDFKit accepts a font buffer here; its TypeScript declaration only lists strings.
+  const doc = new PDFDocument({ size: "A4", margins: { top: 48, bottom: 20, left, right: 48 }, bufferPages: true, autoFirstPage: false, font: reportFont as unknown as string });
+  doc.registerFont("Report", reportFont);
   const chunks: Buffer[] = [];
   let activeTitle = "";
   const finished = new Promise<Buffer>((resolve, reject) => {
