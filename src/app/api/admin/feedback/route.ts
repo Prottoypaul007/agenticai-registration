@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminUser, serviceClient } from "@/lib/supabase";
 import { scheduleSchema } from "@/lib/feedback";
-import { summarizeFeedback } from "@/lib/feedback-results";
-
-async function rows(table: "workshop_feedback_v2" | "workshop_feedback_responses", fields: string) {
-  const result: Record<string, unknown>[] = [];
-  for (let offset = 0; ; offset += 1000) {
-    const { data, error } = await serviceClient().from(table).select(fields).range(offset, offset + 999);
-    if (error) throw new Error("Unable to read anonymous results.");
-    result.push(...((data || []) as unknown as Record<string, unknown>[]));
-    if (!data || data.length < 1000) return result;
-  }
-}
+import { loadFeedbackResults } from "@/lib/feedback-results-server";
 
 export async function GET(request: NextRequest) {
   if (!await adminUser()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,12 +11,7 @@ export async function GET(request: NextRequest) {
       if (error) throw new Error("Unable to load schedules.");
       return NextResponse.json({ forms: data }, { headers: { "Cache-Control": "no-store" } });
     }
-    const [workshops, historical] = await Promise.all([
-      rows("workshop_feedback_v2", "form_key,response_version,learning_helpfulness,outcome_confidence,focus_area,future_workshops,improvements,course_support,academic_year,course_suggestions"),
-      rows("workshop_feedback_responses", "form_key")
-    ]);
-    const results = summarizeFeedback(workshops.filter(row => row.form_key === "workshop-1"),
-      workshops.filter(row => row.form_key === "workshop-2"), historical);
+    const results = await loadFeedbackResults();
     return NextResponse.json({ results }, { headers: { "Cache-Control": "no-store" } });
   } catch { return NextResponse.json({ error: "Feedback results are unavailable. Apply migration 020 if needed." }, { status: 503 }); }
 }

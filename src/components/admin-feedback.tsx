@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { formDetails, formKeys, type FormKey } from "@/lib/feedback";
+import { Download } from "lucide-react";
 
 type Count = { label: string; count: number };
 type WorkshopResults = {
@@ -33,6 +34,7 @@ function Comments({ title, items }: { title: string; items: string[] }) {
 export function AdminFeedback() {
   const [results, setResults] = useState<Results | null>(null);
   const [message, setMessage] = useState("");
+  const [exporting, setExporting] = useState<string | null>(null);
   const load = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/feedback", { cache: "no-store" });
@@ -42,9 +44,34 @@ export function AdminFeedback() {
     } catch { setMessage("Unable to connect to feedback results. Please try again."); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  async function downloadReport(scope: "all" | FormKey) {
+    setMessage("");
+    setExporting(scope);
+    try {
+      const response = await fetch(`/api/admin/feedback/export?form=${scope}`, { cache: "no-store" });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Unable to export feedback.");
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `workshop-feedback-${scope}.pdf`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to export feedback.");
+    } finally { setExporting(null); }
+  }
   return <div className="space-y-6">
     {message && <p role="status" className="rounded-xl border border-cyan-400/25 bg-cyan-400/8 p-4 text-sm text-cyan-100">{message}</p>}
     {results && <>
+      <section className="panel rounded-2xl p-5 md:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="section-kicker">Export reports</p><h3 className="mt-2 text-xl font-semibold text-white">Download feedback as PDF</h3><p className="mt-2 text-sm leading-6 text-slate-400">Choose both workshops or one day. Reports include answer counts and anonymous written suggestions.</p></div><Download className="text-cyan-300" size={25}/></div>
+        <div className="mt-5 flex flex-wrap gap-3">{([ ["all", "Both workshops"], ["workshop-1", "Workshop 1"], ["workshop-2", "Workshop 2"] ] as const).map(([scope, label]) => <button key={scope} type="button" disabled={Boolean(exporting)} onClick={() => void downloadReport(scope)} className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-2.5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/20 disabled:cursor-wait disabled:opacity-50"><Download size={16}/>{exporting === scope ? "Preparing PDF..." : label}</button>)}</div>
+      </section>
       <section className="panel rounded-2xl p-5 md:p-7"><h3 className="text-xl font-semibold">Workshop feedback overview</h3>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">Workshop 1 asks about foundational and architectural understanding. Workshop 2 asks about practical building, evaluation, and showcasing. Their helpfulness answers measure different learning goals.</p>
         <div className="mt-5 grid gap-3 sm:grid-cols-2">{formKeys.map((key, index) => <div key={key} className="rounded-xl border border-white/10 bg-white/3 p-4"><p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">Workshop {index + 1}</p><p className="mt-2 text-3xl font-semibold text-white">{results[key].total}</p><p className="text-sm text-slate-400">new questionnaire responses</p></div>)}</div>
