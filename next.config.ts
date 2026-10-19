@@ -5,9 +5,6 @@ export default function nextConfig(phase: string): NextConfig {
   return {
     reactStrictMode: true,
     distDir: phase === PHASE_DEVELOPMENT_SERVER ? ".next-dev" : ".next",
-    outputFileTracingIncludes: {
-      "/api/admin/export": ["./font/SutonnyMJ Regular.ttf"],
-      "/api/admin/feedback/export": ["./public/fonts/HindSiliguri-Regular.ttf"]
-    }
+    outputFileTracingIncludes: { "/api/admin/export": ["./font/SutonnyMJ Regular.ttf"] }
   };
 }

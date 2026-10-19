@@ -30,4 +30,15 @@ describe("admin feedback PDF export", () => {
     expect(response.headers.get("Content-Disposition")).toContain("workshop-feedback-workshop-1.pdf");
     expect(mocks.buildFeedbackPdf).toHaveBeenCalledExactlyOnceWith(results, "workshop-1");
   });
+  it("shows an authenticated admin the generation failure reason", async () => {
+    mocks.adminUser.mockResolvedValue({ id: "admin" });
+    mocks.loadFeedbackResults.mockResolvedValue({});
+    mocks.buildFeedbackPdf.mockRejectedValue(new Error("Report font unavailable"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const response = await GET(new NextRequest("http://localhost/api/admin/feedback/export"));
+      expect(response.status).toBe(503);
+      expect((await response.json()).error).toContain("Report font unavailable");
+    } finally { errorSpy.mockRestore(); }
+  });
 });

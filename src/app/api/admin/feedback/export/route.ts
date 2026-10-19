@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
       "Content-Disposition": `attachment; filename="workshop-feedback-${scope}.pdf"`,
       "Cache-Control": "private, no-store"
     } });
-  } catch {
-    return NextResponse.json({ error: "Unable to generate the feedback PDF. Please try again." }, { status: 503 });
+  } catch (error) {
+    console.error("Feedback PDF export failed", error);
+    const detail = error instanceof Error ? error.message : "Unknown server error";
+    return NextResponse.json({ error: `Unable to generate the feedback PDF: ${detail}` }, { status: 503 });
   }
 }

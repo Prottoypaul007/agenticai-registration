@@ -1,7 +1,8 @@
-import path from "node:path";
+import { gunzipSync } from "node:zlib";
 import PDFDocument from "pdfkit";
 import { formDetails, type FormKey } from "@/lib/feedback";
 import type { summarizeFeedback } from "@/lib/feedback-results";
+import { HIND_FONT_GZIP_BASE64 } from "@/lib/feedback-pdf-font";
 
 export type FeedbackExportScope = FormKey | "all";
 type Results = ReturnType<typeof summarizeFeedback>;
@@ -16,9 +17,8 @@ const right = 547;
 const width = right - left;
 
 export async function buildFeedbackPdf(results: Results, scope: FeedbackExportScope): Promise<Buffer> {
-  const fontPath = path.join(process.cwd(), "public", "fonts", "HindSiliguri-Regular.ttf");
   const doc = new PDFDocument({ size: "A4", margins: { top: 48, bottom: 20, left, right: 48 }, bufferPages: true, autoFirstPage: false });
-  doc.registerFont("Report", fontPath);
+  doc.registerFont("Report", gunzipSync(Buffer.from(HIND_FONT_GZIP_BASE64, "base64")));
   const chunks: Buffer[] = [];
   let activeTitle = "";
   const finished = new Promise<Buffer>((resolve, reject) => {
